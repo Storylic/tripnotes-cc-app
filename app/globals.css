@@ -1,13 +1,28 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* app/globals.css */
+/* Next.js 15+ with Tailwind CSS */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@import "tailwindcss";
+
+:root {
+  /* TripNotes CC custom theme */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif: 'Crimson Pro', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  
+  /* Custom colors */
+  --color-ink: #2C2C2C;
+  --color-stamp-red: #C65D00;
+  --color-highlighter: #F4E4C1;
+  --color-paper: #FDFBF7;
+  --color-pencil-gray: #E5E2DD;
+  --color-ai-purple: #7C3AED;
+  --color-success-green: #7C9885;
+  --color-warning-amber: #F59E0B;
+  
+  --color-background: #FDFBF7;
+  --color-foreground: #2C2C2C;
+  
+  --radius: 0.125rem;
 }
 
 html,
@@ -17,26 +32,31 @@ body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-foreground);
+  background: var(--color-background);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-sans);
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+/* Utility classes using CSS variables */
+.bg-paper {
+  background-color: var(--color-paper);
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+.bg-ink {
+  background-color: var(--color-ink);
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+.text-ink {
+  color: var(--color-ink);
+}
+
+.text-stamp-red {
+  color: var(--color-stamp-red);
+}
+
+.border-pencil-gray {
+  border-color: var(--color-pencil-gray);
 }
