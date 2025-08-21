@@ -56,7 +56,8 @@ export interface Gem {
   title: string;
   description: string;
   type: 'hidden_gem' | 'tip' | 'warning';
-  metadata?: Record<string, any>;
+  // was: Record<string, any>
+  metadata?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }
