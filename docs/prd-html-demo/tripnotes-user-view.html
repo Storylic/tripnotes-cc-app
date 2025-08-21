@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tokyo: Beyond the Tourist Track - 5 Days | TripNotes CC</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --ink: #2C2C2C;
+            --stamp-red: #C65D00;
+            --highlighter: #F4E4C1;
+            --paper: #FDFBF7;
+            --pencil-gray: #E5E2DD;
+            --shadow: rgba(44,44,44,0.05);
+            --unit: 8px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            font-weight: 400;
+            letter-spacing: -0.011em;
+            color: var(--ink);
+            background: var(--paper);
+            background-image: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 28px,
+                    rgba(229,226,221,0.3) 28px,
+                    rgba(229,226,221,0.3) 29px
+                );
+            line-height: 1.6;
+        }
+
+        /* Header Styles */
+        .hero {
+            position: relative;
+            height: 320px;
+            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.5)), 
+                        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320"><rect fill="%23667788" width="1200" height="320"/><text x="50%" y="50%" fill="white" opacity="0.2" font-size="40" text-anchor="middle">Tokyo Skyline Photo</text></svg>');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .hero-content {
+            position: absolute;
+            bottom: 32px;
+            left: 32px;
+            right: 32px;
+            color: white;
+        }
+
+        .trip-label {
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .trip-title {
+            font-family: 'Crimson Pro', 'Georgia', serif;
+            font-weight: 400;
+            font-size: 40px;
+            margin-bottom: 16px;
+            line-height: 1.2;
+        }
+
+        .creator-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            border-radius: 24px;
+        }
+
+        .creator-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--stamp-red);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Quick Actions Bar */
+        .actions-bar {
+            background: white;
+            border-bottom: 1px solid var(--pencil-gray);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .price-tag {
+            background: var(--stamp-red);
+            color: white;
+            padding: 8px 20px;
+            border: 2px solid var(--stamp-red);
+            border-radius: 2px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 20px;
+            font-weight: bold;
+            transform: rotate(-2deg);
+            position: relative;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--ink);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .btn-outline {
+            background: white;
+            border: 2px solid var(--ink);
+            color: var(--ink);
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 32px;
+            position: relative;
+        }
+
+        /* Notebook margin line */
+        .container::before {
+            content: '';
+            position: fixed;
+            left: 60px;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: rgba(198,93,0,0.15);
+            z-index: -1;
+        }
+
+        /* Essentials Section */
+        .essentials {
+            background: white;
+            border-radius: 2px;
+            padding: 32px;
+            margin-bottom: 32px;
+            border: 1px solid var(--pencil-gray);
+            box-shadow: 
+                1px 1px 3px rgba(0,0,0,0.05),
+                inset 0 0 40px rgba(253,251,247,0.5);
+        }
+
+        .section-title {
+            font-family: 'Crimson Pro', 'Georgia', serif;
+            font-weight: 500;
+            font-size: 24px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .essential-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+        }
+
+        .essential-item {
+            padding-left: 24px;
+            position: relative;
+        }
+
+        .essential-item::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--stamp-red);
+            font-weight: bold;
+        }
+
+        .essential-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        /* Day by Day Section */
+        .itinerary {
+            margin-bottom: 32px;
+        }
+
+        .day-card {
+            background: white;
+            border-radius: 2px;
+            margin-bottom: 16px;
+            border: 1px solid var(--pencil-gray);
+            box-shadow: 
+                1px 1px 3px rgba(0,0,0,0.05),
+                inset 0 0 40px rgba(253,251,247,0.5);
+            overflow: hidden;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .day-card:hover {
+            transform: translateX(2px);
+        }
+
+        .day-card.expanded {
+            box-shadow: 0 4px 16px var(--shadow);
+        }
+
+        /* Page numbers */
+        .day-card::after {
+            content: attr(data-page);
+            position: absolute;
+            bottom: 12px;
+            right: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--pencil-gray);
+        }
+
+        /* Bookmark ribbon for special days */
+        .day-card.bookmarked::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            right: 24px;
+            width: 24px;
+            height: 40px;
+            background: var(--stamp-red);
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 85%, 0 100%);
+            z-index: 10;
+        }
+
+        .day-header {
+            padding: 20px 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            transition: background 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .day-header:hover {
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(198,93,0,0.03) 50%, 
+                transparent 100%);
+            background-size: 200% 100%;
+            animation: pencil-sweep 0.5s ease;
+        }
+
+        @keyframes pencil-sweep {
+            from { background-position: -100% 0; }
+            to { background-position: 100% 0; }
+        }
+
+        .day-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .day-subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .expand-icon {
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--ink);
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s;
+            font-size: 18px;
+        }
+
+        .day-card.expanded .expand-icon {
+            transform: rotate(45deg);
+        }
+
+        .day-content {
+            padding: 0 24px;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .day-card.expanded .day-content {
+            max-height: 800px;
+            padding: 0 24px 24px;
+        }
+
+        .time-block {
+            margin-bottom: 24px;
+            padding-left: 20px;
+            border-left: 2px solid var(--pencil-gray);
+        }
+
+        .time-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--stamp-red);
+            margin-bottom: 8px;
+        }
+
+        .activity {
+            margin-bottom: 12px;
+        }
+
+        /* Hidden Gems - Handwritten style */
+        .gem {
+            background: transparent;
+            border-left: none;
+            padding: 16px 16px 16px 40px;
+            margin: 16px 0;
+            position: relative;
+        }
+
+        .gem::before {
+            content: '✎';
+            position: absolute;
+            left: 12px;
+            top: 20px;
+            color: var(--stamp-red);
+            font-size: 20px;
+        }
+
+        .gem-title {
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--stamp-red);
+            margin-bottom: 8px;
+        }
+
+        .gem-description {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-style: normal;
+            line-height: 1.6;
+            color: var(--ink);
+            background: linear-gradient(to right, var(--highlighter) 0%, var(--highlighter) 100%);
+            background-size: 100% 40%;
+            background-position: 0 60%;
+            background-repeat: no-repeat;
+            padding: 2px 4px;
+            display: inline;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+        }
+
+        .gem-meta {
+            font-size: 12px;
+            color: #888;
+            margin-top: 8px;
+        }
+
+        /* AI Export Section - Notebook style */
+        .ai-export {
+            background: linear-gradient(135deg, #FDFBF7 0%, #FAF9F5 100%);
+            color: var(--ink);
+            border: 1px solid var(--pencil-gray);
+            box-shadow: 
+                2px 2px 8px rgba(0,0,0,0.08),
+                inset 0 0 20px rgba(198,93,0,0.02);
+            border-radius: 2px;
+            padding: 32px;
+            margin-top: 48px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-export::before {
+            content: '📓';
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            font-size: 24px;
+        }
+
+        .ai-export-title {
+            font-family: 'Crimson Pro', 'Georgia', serif;
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+
+        .ai-export-description {
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+
+        .prompt-preview {
+            background: white;
+            border: 1px dashed var(--pencil-gray);
+            border-radius: 2px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--ink);
+            margin-bottom: 20px;
+            max-height: 120px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .prompt-preview::after {
+            content: '...';
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            background: white;
+            padding: 0 8px;
+        }
+
+        .btn-export {
+            background: var(--ink);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-export:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(44,44,44,0.2);
+        }
+
+        /* Photo and Map Elements */
+        .media-row {
+            display: flex;
+            gap: 8px;
+            margin: 12px 0;
+            padding: 8px 0;
+        }
+
+        .photo-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 2px;
+            background: #F5F5F3;
+            border: 1px solid var(--pencil-gray);
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .photo-thumb:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .photo-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-thumb::after {
+            content: '📷';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            opacity: 0.3;
+        }
+
+        .map-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid var(--pencil-gray);
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--ink);
+            transition: all 0.2s;
+            margin-left: auto;
+        }
+
+        .map-toggle:hover {
+            background: var(--paper);
+            border-color: var(--stamp-red);
+        }
+
+        .map-toggle.active {
+            background: var(--stamp-red);
+            color: white;
+            border-color: var(--stamp-red);
+        }
+
+        /* Inline Map Container */
+        .map-container {
+            height: 0;
+            overflow: hidden;
+            transition: height 0.3s ease;
+            margin: 16px 0;
+            border-radius: 2px;
+        }
+
+        .map-container.expanded {
+            height: 240px;
+            border: 1px solid var(--pencil-gray);
+        }
+
+        .map-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #F5F5F3 0%, #FAFAF8 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 14px;
+            position: relative;
+        }
+
+        .map-placeholder::before {
+            content: '🗺️';
+            font-size: 32px;
+            opacity: 0.2;
+            position: absolute;
+        }
+
+        /* Photo Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .lightbox.active {
+            display: flex;
+        }
+
+        .lightbox-content {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 4px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+        }
+
+        .lightbox-content img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .close-lightbox {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            background: rgba(0,0,0,0.5);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .close-lightbox:hover {
+            background: rgba(0,0,0,0.8);
+        }
+
+        /* Quick View Button */
+        .quick-view {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: var(--stamp-red);
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 2px;
+            transition: all 0.2s;
+            margin-left: 8px;
+        }
+
+        .quick-view:hover {
+            background: rgba(198,93,0,0.1);
+        }
+        .stats-bar {
+            display: flex;
+            gap: 32px;
+            padding: 24px 0;
+            border-top: 1px solid var(--pencil-gray);
+            margin-top: 32px;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--stamp-red);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-left: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <div class="hero">
+        <div class="hero-content">
+            <div class="trip-label">Tokyo • 5 Days • Spring</div>
+            <h1 class="trip-title">Beyond the Tourist Track</h1>
+            <div class="creator-badge">
+                <div class="creator-avatar">SC</div>
+                <div>
+                    <div style="font-weight: 600;">Sarah Chen</div>
+                    <div style="font-size: 12px; opacity: 0.9;">14 trips planned</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Bar -->
+    <div class="actions-bar">
+        <div class="price-tag">$18</div>
+        <div class="action-buttons">
+            <button class="btn btn-outline">♡ Save</button>
+            <button class="btn btn-outline">⤴ Share</button>
+            <button class="btn btn-primary">Get This Trip</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Essentials Section -->
+        <section class="essentials">
+            <h2 class="section-title">📍 Trip Essentials</h2>
+            <div class="essential-grid">
+                <div class="essential-item">
+                    <div class="essential-label">Best Time</div>
+                    <div>March-May (Cherry Blossoms)</div>
+                </div>
+                <div class="essential-item">
+                    <div class="essential-label">Budget</div>
+                    <div>¥8,000-12,000/day</div>
+                </div>
+                <div class="essential-item">
+                    <div class="essential-label">Stay</div>
+                    <div>Shibuya or Shinjuku</div>
+                </div>
+                <div class="essential-item">
+                    <div class="essential-label">Must Have</div>
+                    <div>JR Pass, Suica Card</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Day by Day Section -->
+        <section class="itinerary">
+            <h2 class="section-title">🗓 Your 5 Days</h2>
+            
+            <!-- Day 1 -->
+            <div class="day-card expanded bookmarked" data-page="Day 1">
+                <div class="day-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <div>
+                        <div class="day-title">Day 1: Landing & Lost in Shibuya</div>
+                        <div class="day-subtitle">Ease into Tokyo's beautiful chaos</div>
+                    </div>
+                    <div class="expand-icon">+</div>
+                </div>
+                <div class="day-content">
+                    <div class="time-block">
+                        <div class="time-label">Morning</div>
+                        <div class="activity">• Narita Express to Shibuya (¥3,190, 90 min)</div>
+                        <div class="activity">• Check into hotel, grab combini breakfast</div>
+                    </div>
+                    
+                    <div class="time-block">
+                        <div class="time-label">Afternoon</div>
+                        <div class="activity">
+                            • Shibuya Crossing - go to Starbucks overlooking it
+                            <span class="quick-view" onclick="togglePhotos(this)">📸 3 photos</span>
+                        </div>
+                        <div class="media-row" style="display: none;">
+                            <div class="photo-thumb" onclick="openLightbox(1)">
+                                <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'><rect fill='%23E8E8E6' width='60' height='60'/><text x='50%' y='50%' fill='%23999' font-size='8' text-anchor='middle'>Crossing</text></svg>" alt="Shibuya Crossing">
+                            </div>
+                            <div class="photo-thumb" onclick="openLightbox(2)">
+                                <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'><rect fill='%23E8E8E6' width='60' height='60'/><text x='50%' y='50%' fill='%23999' font-size='8' text-anchor='middle'>View</text></svg>" alt="Starbucks View">
+                            </div>
+                            <div class="photo-thumb" onclick="openLightbox(3)">
+                                <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'><rect fill='%23E8E8E6' width='60' height='60'/><text x='50%' y='50%' fill='%23999' font-size='8' text-anchor='middle'>Night</text></svg>" alt="Night Scene">
+                            </div>
+                            <button class="map-toggle" onclick="toggleMap(this)">
+                                📍 View on map
+                            </button>
+                        </div>
+                        <div class="map-container">
+                            <div class="map-placeholder">
+                                Interactive map loads here
+                            </div>
+                        </div>
+                        <div class="gem">
+                            <div class="gem-title">Nonbei Yokocho</div>
+                            <div class="gem-description">"Drunkard's Alley" - 60 tiny bars crammed into 2 narrow alleys. Each seats maybe 6 people. Order beer and whatever the person next to you is having.</div>
+                            <div class="gem-meta">📍 2 min from Shibuya Station, East Exit</div>
+                        </div>
+                    </div>
+                    
+                    <div class="time-block">
+                        <div class="time-label">Evening</div>
+                        <div class="gem">
+                            <div class="gem-title">Shibuya Sky</div>
+                            <div class="gem-description">Skip Tokyo Tower. This rooftop has 360° views and stays open until 11pm. Go at blue hour (30 min after sunset) for magic lighting.</div>
+                            <div class="gem-meta">
+                                📍 Top of Shibuya Scramble Square • ¥2,500
+                                <span class="quick-view" onclick="togglePhotos(this)">📸 2 photos</span>
+                            </div>
+                            <div class="media-row" style="display: none;">
+                                <div class="photo-thumb" onclick="openLightbox(4)">
+                                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'><rect fill='%23E8E8E6' width='60' height='60'/><text x='50%' y='50%' fill='%23999' font-size='8' text-anchor='middle'>Sunset</text></svg>" alt="Shibuya Sky Sunset">
+                                </div>
+                                <div class="photo-thumb" onclick="openLightbox(5)">
+                                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'><rect fill='%23E8E8E6' width='60' height='60'/><text x='50%' y='50%' fill='%23999' font-size='8' text-anchor='middle'>Night View</text></svg>" alt="Tokyo Night View">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Day 2 -->
+            <div class="day-card" data-page="Day 2">
+                <div class="day-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <div>
+                        <div class="day-title">Day 2: Old Tokyo Time Machine</div>
+                        <div class="day-subtitle">Temples, tradition, and secret gardens</div>
+                    </div>
+                    <div class="expand-icon">+</div>
+                </div>
+                <div class="day-content">
+                    <div class="time-block">
+                        <div class="time-label">Morning</div>
+                        <div class="activity">• 5:30am at Senso-ji (beat the crowds)</div>
+                        <div class="activity">• Breakfast at Nakamise-dori stalls</div>
+                    </div>
+                    
+                    <div class="time-block">
+                        <div class="time-label">Afternoon</div>
+                        <div class="gem">
+                            <div class="gem-title">Nezu Shrine</div>
+                            <div class="gem-description">Everyone goes to Fushimi Inari in Kyoto. This has 1000 torii gates too, zero tourists, and azaleas everywhere in April.</div>
+                            <div class="gem-meta">📍 Bunkyo • Free entry</div>
+                        </div>
+                    </div>
+
+                    <div class="time-block">
+                        <div class="time-label">Evening</div>
+                        <div class="activity">• Yanaka Ginza shopping street</div>
+                        <div class="activity">• Sunset from Yanaka Cemetery (peaceful, beautiful)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Day 3 -->
+            <div class="day-card" data-page="Day 3">
+                <div class="day-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <div>
+                        <div class="day-title">Day 3: Harajuku to Roppongi Art Crawl</div>
+                        <div class="day-subtitle">Youth culture meets high culture</div>
+                    </div>
+                    <div class="expand-icon">+</div>
+                </div>
+                <div class="day-content">
+                    <div class="time-block">
+                        <div class="time-label">Morning</div>
+                        <div class="activity">• Meiji Shrine at opening (peaceful before crowds)</div>
+                        <div class="activity">• Takeshita Street for people watching</div>
+                    </div>
+                    
+                    <div class="time-block">
+                        <div class="time-label">Afternoon</div>
+                        <div class="gem">
+                            <div class="gem-title">Omotesando Architecture Walk</div>
+                            <div class="gem-description">Free architecture tour! Walk from Prada to Tod's to Dior buildings. Each is a masterpiece. End at Nezu Museum's garden.</div>
+                            <div class="gem-meta">📍 Omotesando Avenue</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Day 4 -->
+            <div class="day-card bookmarked" data-page="Day 4">
+                <div class="day-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <div>
+                        <div class="day-title">Day 4: Mount Fuji Day Trip</div>
+                        <div class="day-subtitle">Lakes, views, and onsen bliss</div>
+                    </div>
+                    <div class="expand-icon">+</div>
+                </div>
+                <div class="day-content">
+                    <div class="time-block">
+                        <div class="time-label">Early Morning</div>
+                        <div class="activity">• 7:30am Limited Express from Shinjuku</div>
+                        <div class="activity">• Arrive Kawaguchiko by 9:30am</div>
+                    </div>
+                    
+                    <div class="time-block">
+                        <div class="time-label">Day Trip</div>
+                        <div class="gem">
+                            <div class="gem-title">Chureito Pagoda Secret</div>
+                            <div class="gem-description">Everyone goes at noon - worst time! Go at 3pm when tour buses leave. Golden hour at 4pm in spring. 398 steps but worth every one.</div>
+                            <div class="gem-meta">📍 Shimoyoshida Station</div>
+                        </div>
+                        <div class="activity">• Lake Kawaguchi rope way</div>
+                        <div class="activity">• Onsen with Fuji views before return</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Day 5 -->
+            <div class="day-card" data-page="Day 5">
+                <div class="day-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <div>
+                        <div class="day-title">Day 5: Your Perfect Last Day</div>
+                        <div class="day-subtitle">Markets, gifts, and goodbye drinks</div>
+                    </div>
+                    <div class="expand-icon">+</div>
+                </div>
+                <div class="day-content">
+                    <div class="time-block">
+                        <div class="time-label">Morning</div>
+                        <div class="activity">• Tsukiji Outer Market (still amazing for food)</div>
+                        <div class="gem">
+                            <div class="gem-title">Real Tsukiji Experience</div>
+                            <div class="gem-description">Skip the famous sushi lines. Go to Tsukiji Uogashi - the new wholesale building. 2nd floor has restaurants where actual workers eat. Half the price, twice as good.</div>
+                            <div class="gem-meta">📍 Next to Tsukiji Station</div>
+                        </div>
+                    </div>
+                    
+                    <div class="time-block">
+                        <div class="time-label">Afternoon</div>
+                        <div class="activity">• Ginza for last-minute shopping</div>
+                        <div class="activity">• Tokyo Station character street for gifts</div>
+                    </div>
+
+                    <div class="time-block">
+                        <div class="time-label">Final Evening</div>
+                        <div class="activity">• Golden Gai in Shinjuku</div>
+                        <div class="activity">• 200+ tiny themed bars, pick one and make friends</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat">
+                <span class="stat-icon">📍</span>
+                <span class="stat-value">14</span>
+                <span class="stat-label">hidden gems</span>
+            </div>
+            <div class="stat">
+                <span class="stat-icon">🍜</span>
+                <span class="stat-value">23</span>
+                <span class="stat-label">food spots</span>
+            </div>
+            <div class="stat">
+                <span class="stat-icon">💴</span>
+                <span class="stat-value">¥45,000</span>
+                <span class="stat-label">total budget</span>
+            </div>
+            <div class="stat">
+                <span class="stat-icon">🚶</span>
+                <span class="stat-value">12km</span>
+                <span class="stat-label">daily walking</span>
+            </div>
+        </div>
+
+        <!-- AI Export Section -->
+        <section class="ai-export">
+            <h2 class="ai-export-title">Make This Trip Yours</h2>
+            <p class="ai-export-description">Copy this prompt into ChatGPT to customize for your dates, budget, and interests:</p>
+            <div class="prompt-preview">
+                I'm planning a 5-day Tokyo trip from [YOUR DATES]. My budget is [YOUR BUDGET] and I'm interested in [YOUR INTERESTS]. Here's a detailed itinerary I'd like to adapt:
+                
+                TRIP: Tokyo - Beyond the Tourist Track
+                ESSENTIALS: Spring season, ¥8,000-12,000/day, Stay in Shibuya/Shinjuku
+                DAY 1: Landing & Lost in Shibuya - Narita Express, Shibuya Crossing, Hidden Gem: Nonbei Yokocho (60 tiny bars in alleys)...
+            </div>
+            <button class="btn-export">Copy Full Prompt</button>
+        </section>
+    </div>
+
+    <!-- Lightbox for photos -->
+    <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+        <span class="close-lightbox">&times;</span>
+        <div class="lightbox-content">
+            <img id="lightbox-img" src="" alt="Trip photo">
+        </div>
+    </div>
+
+    <script>
+        // Toggle photo rows
+        function togglePhotos(element) {
+            const mediaRow = element.parentElement.nextElementSibling;
+            if (mediaRow && mediaRow.classList.contains('media-row')) {
+                mediaRow.style.display = mediaRow.style.display === 'none' ? 'flex' : 'none';
+                element.textContent = mediaRow.style.display === 'none' ? '📸 3 photos' : '📸 Hide';
+            }
+        }
+
+        // Toggle map
+        function toggleMap(button) {
+            const mapContainer = button.parentElement.nextElementSibling;
+            if (mapContainer && mapContainer.classList.contains('map-container')) {
+                mapContainer.classList.toggle('expanded');
+                button.classList.toggle('active');
+                button.textContent = mapContainer.classList.contains('expanded') ? '📍 Hide map' : '📍 View on map';
+            }
+        }
+
+        // Lightbox functions
+        function openLightbox(photoId) {
+            const lightbox = document.getElementById('lightbox');
+            lightbox.classList.add('active');
+            // In real implementation, this would load the actual photo
+        }
+
+        function closeLightbox() {
+            const lightbox = document.getElementById('lightbox');
+            lightbox.classList.remove('active');
+        }
+
+        // Prevent lightbox from closing when clicking on image
+        document.querySelector('.lightbox-content')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+    </script>
+</body>
+</html>

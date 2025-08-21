@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit: Tokyo Beyond the Tourist Track | TripNotes CC Creator</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --ink: #2C2C2C;
+            --stamp-red: #C65D00;
+            --highlighter: #F4E4C1;
+            --paper: #FDFBF7;
+            --pencil-gray: #E5E2DD;
+            --shadow: rgba(44,44,44,0.05);
+            --ai-purple: #7C3AED;
+            --success-green: #7C9885;
+            --warning-amber: #F59E0B;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            font-weight: 400;
+            letter-spacing: -0.011em;
+            color: var(--ink);
+            background: var(--paper);
+            background-image: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 28px,
+                    rgba(229,226,221,0.3) 28px,
+                    rgba(229,226,221,0.3) 29px
+                );
+            line-height: 1.6;
+        }
+
+        /* Header Bar */
+        .header-bar {
+            background: white;
+            border-bottom: 1px solid var(--pencil-gray);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            font-family: 'Crimson Pro', serif;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--stamp-red);
+        }
+
+        .edit-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px;
+            background: var(--paper);
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--success-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid var(--pencil-gray);
+            color: var(--ink);
+        }
+
+        .btn-primary {
+            background: var(--ink);
+            color: white;
+        }
+
+        .btn-ai {
+            background: white;
+            border: 1px solid var(--ai-purple);
+            color: var(--ai-purple);
+        }
+
+        .btn-ai:hover {
+            background: var(--ai-purple);
+            color: white;
+        }
+
+        /* Main Layout */
+        .editor-container {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            max-width: 1400px;
+            margin: 0 auto;
+            gap: 24px;
+            padding: 24px;
+        }
+
+        /* Editor Panel */
+        .editor-panel {
+            background: white;
+            border-radius: 2px;
+            border: 1px solid var(--pencil-gray);
+            box-shadow: 1px 1px 3px var(--shadow);
+            overflow: hidden;
+        }
+
+        .trip-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--pencil-gray);
+        }
+
+        .trip-title-input {
+            font-family: 'Crimson Pro', serif;
+            font-size: 32px;
+            font-weight: 400;
+            border: none;
+            width: 100%;
+            color: var(--ink);
+            background: transparent;
+            margin-bottom: 8px;
+        }
+
+        .trip-subtitle-input {
+            font-size: 16px;
+            border: none;
+            width: 100%;
+            color: #666;
+            background: transparent;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            background: rgba(244,228,193,0.1);
+        }
+
+        /* Day Editor */
+        .day-editor {
+            border-bottom: 1px solid var(--pencil-gray);
+        }
+
+        .day-header-edit {
+            padding: 16px 24px;
+            background: var(--paper);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: move;
+        }
+
+        .day-number {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            background: var(--stamp-red);
+            color: white;
+            border-radius: 2px;
+            text-align: center;
+            line-height: 32px;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+
+        .day-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 28px;
+            height: 28px;
+            border: 1px solid var(--pencil-gray);
+            background: white;
+            border-radius: 2px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: var(--paper);
+            border-color: var(--stamp-red);
+        }
+
+        .day-content-edit {
+            padding: 24px;
+        }
+
+        .time-block-edit {
+            margin-bottom: 24px;
+            padding: 16px;
+            background: var(--paper);
+            border-radius: 2px;
+            position: relative;
+        }
+
+        .time-input {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--stamp-red);
+            border: none;
+            background: transparent;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .activity-editor {
+            width: 100%;
+            border: none;
+            background: transparent;
+            resize: vertical;
+            min-height: 60px;
+            line-height: 1.6;
+        }
+
+        /* Gem Editor */
+        .gem-editor {
+            background: linear-gradient(to right, transparent 0%, rgba(244,228,193,0.2) 2%, rgba(244,228,193,0.2) 98%, transparent 100%);
+            border-left: 3px solid var(--stamp-red);
+            padding: 16px;
+            margin: 16px 0;
+            position: relative;
+        }
+
+        .gem-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--stamp-red);
+            margin-bottom: 8px;
+        }
+
+        .gem-title-input {
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            background: transparent;
+            width: 100%;
+            margin-bottom: 8px;
+            color: var(--stamp-red);
+        }
+
+        .gem-content-input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            resize: vertical;
+            min-height: 40px;
+        }
+
+        /* AI Assistant Panel */
+        .ai-panel {
+            position: sticky;
+            top: 80px;
+            height: fit-content;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+
+        .ai-card {
+            background: white;
+            border-radius: 2px;
+            border: 1px solid var(--pencil-gray);
+            box-shadow: 1px 1px 3px var(--shadow);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .ai-card-header {
+            padding: 12px 16px;
+            background: var(--paper);
+            border-bottom: 1px solid var(--pencil-gray);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .ai-card-title {
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-badge {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background: var(--ai-purple);
+            color: white;
+            border-radius: 2px;
+            text-align: center;
+            line-height: 16px;
+            font-size: 10px;
+        }
+
+        .ai-card-content {
+            padding: 16px;
+            font-size: 13px;
+        }
+
+        /* AI Suggestions */
+        .suggestion-item {
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: var(--paper);
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            padding-left: 24px;
+        }
+
+        .suggestion-item:hover {
+            background: rgba(124,58,237,0.05);
+            border-left: 2px solid var(--ai-purple);
+        }
+
+        .suggestion-item::before {
+            content: '+';
+            position: absolute;
+            left: 8px;
+            color: var(--ai-purple);
+            font-weight: bold;
+        }
+
+        /* Fact Check */
+        .fact-check-item {
+            padding: 8px 12px;
+            margin: 8px 0;
+            border-radius: 2px;
+            font-size: 12px;
+            display: flex;
+            align-items: start;
+            gap: 8px;
+        }
+
+        .fact-check-item.valid {
+            background: rgba(124,152,133,0.1);
+            border-left: 3px solid var(--success-green);
+        }
+
+        .fact-check-item.warning {
+            background: rgba(245,158,11,0.1);
+            border-left: 3px solid var(--warning-amber);
+        }
+
+        .fact-icon {
+            font-size: 14px;
+        }
+
+        /* Map Preview */
+        .map-preview {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #F5F5F3 0%, #FAFAF8 100%);
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 12px;
+            position: relative;
+            margin-top: 8px;
+        }
+
+        .map-preview::before {
+            content: '🗺️';
+            font-size: 24px;
+            opacity: 0.3;
+            position: absolute;
+        }
+
+        /* Pricing Card */
+        .pricing-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed var(--pencil-gray);
+            border-radius: 2px;
+            background: white;
+            font-size: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            text-align: center;
+            color: var(--stamp-red);
+        }
+
+        .earnings-estimate {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* Add buttons */
+        .add-element-row {
+            padding: 16px 24px;
+            display: flex;
+            gap: 8px;
+            border-top: 1px dashed var(--pencil-gray);
+        }
+
+        .add-btn {
+            padding: 6px 12px;
+            border: 1px dashed var(--pencil-gray);
+            background: transparent;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #666;
+            transition: all 0.2s;
+        }
+
+        .add-btn:hover {
+            border-color: var(--stamp-red);
+            color: var(--stamp-red);
+            background: rgba(198,93,0,0.05);
+        }
+
+        /* Prompt Templates */
+        .prompt-template {
+            padding: 12px;
+            background: var(--paper);
+            border-radius: 2px;
+            margin: 8px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            position: relative;
+        }
+
+        .prompt-template::before {
+            content: '"';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            font-size: 20px;
+            color: var(--ai-purple);
+            opacity: 0.3;
+        }
+
+        .delete-prompt {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1px solid var(--pencil-gray);
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .delete-prompt:hover {
+            background: var(--stamp-red);
+            color: white;
+            border-color: var(--stamp-red);
+        }
+
+        /* Collapsed state for AI cards */
+        .ai-card.collapsed .ai-card-content {
+            display: none;
+        }
+
+        .ai-card.collapsed .ai-card-header {
+            border-bottom: none;
+        }
+
+        .expand-icon {
+            transition: transform 0.2s;
+        }
+
+        .ai-card.collapsed .expand-icon {
+            transform: rotate(-90deg);
+        }
+
+        /* Focus mode */
+        .focus-mode .ai-panel {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* Stats bar */
+        .editor-stats {
+            padding: 12px 24px;
+            background: var(--paper);
+            border-top: 1px solid var(--pencil-gray);
+            display: flex;
+            gap: 24px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--ink);
+            font-family: 'JetBrains Mono', monospace;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header-bar">
+        <div class="header-left">
+            <div class="logo">TripNotes CC</div>
+            <div class="edit-status">
+                <span class="status-dot"></span>
+                <span>All changes saved</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary">Save Draft</button>
+            <button class="btn btn-secondary">Preview</button>
+            <button class="btn btn-ai">✨ AI Assist</button>
+            <button class="btn btn-primary">Publish Trip</button>
+        </div>
+    </div>
+
+    <!-- Main Editor -->
+    <div class="editor-container">
+        <!-- Left: Editor Panel -->
+        <div class="editor-panel">
+            <!-- Trip Header -->
+            <div class="trip-header">
+                <input type="text" class="trip-title-input" value="Tokyo: Beyond the Tourist Track" placeholder="Trip Title">
+                <input type="text" class="trip-subtitle-input" value="5 Days • Spring • ¥8,000-12,000/day" placeholder="Duration • Season • Budget">
+            </div>
+
+            <!-- Day 1 Editor -->
+            <div class="day-editor">
+                <div class="day-header-edit">
+                    <div>
+                        <span class="day-number">1</span>
+                        <input type="text" value="Landing & Lost in Shibuya" style="border: none; font-size: 16px; font-weight: 600;">
+                    </div>
+                    <div class="day-actions">
+                        <button class="icon-btn">📷</button>
+                        <button class="icon-btn">📍</button>
+                        <button class="icon-btn">⋮</button>
+                    </div>
+                </div>
+                
+                <div class="day-content-edit">
+                    <div class="time-block-edit">
+                        <input type="text" class="time-input" value="MORNING">
+                        <textarea class="activity-editor">• Narita Express to Shibuya (¥3,190, 90 min)
+• Check into hotel, grab combini breakfast</textarea>
+                    </div>
+
+                    <div class="time-block-edit">
+                        <input type="text" class="time-input" value="AFTERNOON">
+                        <textarea class="activity-editor">• Shibuya Crossing - go to Starbucks overlooking it</textarea>
+                        
+                        <div class="gem-editor">
+                            <div class="gem-label">Hidden Gem</div>
+                            <input type="text" class="gem-title-input" value="Nonbei Yokocho">
+                            <textarea class="gem-content-input">"Drunkard's Alley" - 60 tiny bars crammed into 2 narrow alleys. Each seats maybe 6 people. Order beer and whatever the person next to you is having.</textarea>
+                        </div>
+                    </div>
+
+                    <div class="time-block-edit">
+                        <input type="text" class="time-input" value="EVENING">
+                        <div class="gem-editor">
+                            <div class="gem-label">Hidden Gem</div>
+                            <input type="text" class="gem-title-input" value="Shibuya Sky">
+                            <textarea class="gem-content-input">Skip Tokyo Tower. This rooftop has 360° views and stays open until 11pm. Go at blue hour (30 min after sunset) for magic lighting.</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="add-element-row">
+                    <button class="add-btn">+ Time block</button>
+                    <button class="add-btn">+ Hidden gem</button>
+                    <button class="add-btn">+ Photo spot</button>
+                    <button class="add-btn">+ Food stop</button>
+                </div>
+            </div>
+
+            <!-- Day 2 Editor (Collapsed) -->
+            <div class="day-editor">
+                <div class="day-header-edit">
+                    <div>
+                        <span class="day-number">2</span>
+                        <input type="text" value="Old Tokyo Time Machine" style="border: none; font-size: 16px; font-weight: 600;">
+                    </div>
+                    <div class="day-actions">
+                        <button class="icon-btn">📷</button>
+                        <button class="icon-btn">📍</button>
+                        <button class="icon-btn">⋮</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Day Button -->
+            <div class="add-element-row" style="justify-content: center;">
+                <button class="add-btn" style="padding: 12px 24px;">+ Add Day</button>
+            </div>
+
+            <!-- Stats -->
+            <div class="editor-stats">
+                <div class="stat-item">
+                    <span>Words:</span>
+                    <span class="stat-value">842</span>
+                </div>
+                <div class="stat-item">
+                    <span>Days:</span>
+                    <span class="stat-value">5</span>
+                </div>
+                <div class="stat-item">
+                    <span>Stops:</span>
+                    <span class="stat-value">23</span>
+                </div>
+                <div class="stat-item">
+                    <span>Hidden Gems:</span>
+                    <span class="stat-value">14</span>
+                </div>
+                <div class="stat-item">
+                    <span>Photos:</span>
+                    <span class="stat-value">28</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: AI Assistant Panel -->
+        <div class="ai-panel">
+            <!-- AI Suggestions -->
+            <div class="ai-card">
+                <div class="ai-card-header" onclick="toggleCard(this)">
+                    <div class="ai-card-title">
+                        <span class="ai-badge">✨</span>
+                        <span>AI Suggestions</span>
+                    </div>
+                    <span class="expand-icon">▼</span>
+                </div>
+                <div class="ai-card-content">
+                    <div class="suggestion-item">Add TeamLab Borderless - closes permanently in August</div>
+                    <div class="suggestion-item">Include JR Pass vs IC card cost comparison</div>
+                    <div class="suggestion-item">Mention cherry blossom spots if traveling in April</div>
+                    <div class="suggestion-item">Add vegetarian options for each food stop</div>
+                    <button class="btn btn-ai" style="width: 100%; margin-top: 8px; font-size: 12px;">Generate More</button>
+                </div>
+            </div>
+
+            <!-- Fact Check -->
+            <div class="ai-card">
+                <div class="ai-card-header" onclick="toggleCard(this)">
+                    <div class="ai-card-title">
+                        <span class="ai-badge">✓</span>
+                        <span>Fact Check</span>
+                    </div>
+                    <span class="expand-icon">▼</span>
+                </div>
+                <div class="ai-card-content">
+                    <div class="fact-check-item valid">
+                        <span class="fact-icon">✓</span>
+                        <div>
+                            <strong>Narita to Shibuya:</strong><br>
+                            ¥3,190 is correct for Narita Express
+                        </div>
+                    </div>
+                    <div class="fact-check-item warning">
+                        <span class="fact-icon">⚠</span>
+                        <div>
+                            <strong>Walking time:</strong><br>
+                            Shibuya to Nonbei Yokocho is ~5 min, not 2 min
+                        </div>
+                    </div>
+                    <div class="fact-check-item valid">
+                        <span class="fact-icon">✓</span>
+                        <div>
+                            <strong>Shibuya Sky hours:</strong><br>
+                            Confirmed open until 11pm
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Preview -->
+            <div class="ai-card">
+                <div class="ai-card-header" onclick="toggleCard(this)">
+                    <div class="ai-card-title">
+                        <span class="ai-badge">📍</span>
+                        <span>Day 1 Route Map</span>
+                    </div>
+                    <span class="expand-icon">▼</span>
+                </div>
+                <div class="ai-card-content">
+                    <div class="map-preview">
+                        Interactive route map
+                    </div>
+                    <div style="margin-top: 12px; font-size: 12px;">
+                        <div>📍 4 stops plotted</div>
+                        <div>🚶 Total walking: 3.2km</div>
+                        <div>⏱️ Est. travel time: 45 min</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prompt Templates -->
+            <div class="ai-card">
+                <div class="ai-card-header" onclick="toggleCard(this)">
+                    <div class="ai-card-title">
+                        <span class="ai-badge">💬</span>
+                        <span>Custom Prompts</span>
+                    </div>
+                    <span class="expand-icon">▼</span>
+                </div>
+                <div class="ai-card-content">
+                    <div class="prompt-template">
+                        "I have kids aged [X] and [Y]"
+                        <span class="delete-prompt">×</span>
+                    </div>
+                    <div class="prompt-template">
+                        "I'm vegetarian/vegan"
+                        <span class="delete-prompt">×</span>
+                    </div>
+                    <div class="prompt-template">
+                        "I prefer budget/luxury options"
+                        <span class="delete-prompt">×</span>
+                    </div>
+                    <button class="add-btn" style="width: 100%; margin-top: 8px;">+ Add prompt template</button>
+                </div>
+            </div>
+
+            <!-- Pricing -->
+            <div class="ai-card">
+                <div class="ai-card-header" onclick="toggleCard(this)">
+                    <div class="ai-card-title">
+                        <span class="ai-badge">$</span>
+                        <span>Pricing & Earnings</span>
+                    </div>
+                    <span class="expand-icon">▼</span>
+                </div>
+                <div class="ai-card-content">
+                    <input type="text" class="pricing-input" value="$18" placeholder="$0">
+                    <div class="earnings-estimate">
+                        <div><strong>Estimated monthly:</strong></div>
+                        <div>10 sales: $162 (after fees)</div>
+                        <div>50 sales: $810 (after fees)</div>
+                        <div>100 sales: $1,620 (after fees)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEO Score -->
+            <div class="ai-card collapsed">
+                <div class="ai-card-header" onclick="toggleCard(this)">
+                    <div class="ai-card-title">
+                        <span class="ai-badge">📊</span>
+                        <span>SEO Score: 8.5/10</span>
+                    </div>
+                    <span class="expand-icon">▼</span>
+                </div>
+                <div class="ai-card-content">
+                    <!-- SEO suggestions -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle AI cards
+        function toggleCard(header) {
+            const card = header.parentElement;
+            card.classList.toggle('collapsed');
+        }
+
+        // Auto-save simulation
+        let saveTimeout;
+        const inputs = document.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                const statusDot = document.querySelector('.status-dot');
+                const statusText = document.querySelector('.edit-status span:last-child');
+                
+                statusDot.style.background = 'var(--warning-amber)';
+                statusText.textContent = 'Saving...';
+                
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    statusDot.style.background = 'var(--success-green)';
+                    statusText.textContent = 'All changes saved';
+                }, 1000);
+            });
+        });
+
+        // Focus mode toggle with AI Assist button
+        document.querySelector('.btn-ai').addEventListener('click', function() {
+            document.body.classList.toggle('focus-mode');
+            this.textContent = document.body.classList.contains('focus-mode') ? '👁 Show AI' : '✨ AI Assist';
+        });
+
+        // Auto-resize textareas
+        const textareas = document.querySelectorAll('textarea');
+        textareas.forEach(textarea => {
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = this.scrollHeight + 'px';
+            });
+            // Initial resize
+            textarea.style.height = textarea.scrollHeight + 'px';
+        });
+    </script>
+</body>
+</html>
