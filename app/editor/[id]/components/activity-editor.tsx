@@ -6,7 +6,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Activity } from '../lib/types';
+import type { Activity, Gem } from '../lib/types';
 
 interface ActivityEditorProps {
   activity: Activity;
@@ -54,13 +54,24 @@ export default function ActivityEditor({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  // Auto-resize textarea
+  // Auto-resize textarea - IMPROVEMENT 1: Better auto-resize without scrollbars
   useEffect(() => {
     if (textareaRef.current) {
+      // Reset height to auto to get the correct scrollHeight
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+      // Set height to scrollHeight to remove scrollbar
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [activity.description]);
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onUpdate({ description: e.target.value });
+    // Immediate resize on change
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  };
 
   return (
     <div 
@@ -96,33 +107,42 @@ export default function ActivityEditor({
             <option value="all-day">ALL DAY</option>
           </select>
 
-          {/* Activity Description */}
+          {/* Activity Description - IMPROVEMENT 1: No scrollbar */}
           <textarea
             ref={textareaRef}
             value={activity.description}
-            onChange={(e) => onUpdate({ description: e.target.value })}
-            className="w-full bg-transparent border-none outline-none resize-none min-h-[60px]"
+            onChange={handleTextareaChange}
+            className="w-full bg-transparent border-none outline-none resize-none min-h-[60px] overflow-hidden transition-[height] duration-200 ease-in-out"
             placeholder="Describe this activity..."
+            style={{ lineHeight: '1.6' }}
           />
           
-          {/* Gems */}
-          {activity.gems?.map((gem) => (
+          {/* Gems - IMPROVEMENT 2: Enhanced visual treatment */}
+          {activity.gems?.map((gem: Gem) => (
             <div 
               key={gem.id} 
-              className="mt-4 pl-4 border-l-3 border-[var(--color-stamp-red)] bg-gradient-to-r from-[var(--color-highlighter)]/20 to-transparent p-3 rounded"
+              className="mt-4 pl-4 border-l-[3px] border-[#E8967A] bg-gradient-to-r from-[var(--color-highlighter)]/25 to-transparent p-3 rounded-sm"
+              style={{ transform: 'rotate(-0.5deg)' }}
             >
-              <div className="flex justify-between items-start">
+              <div className="flex items-start gap-2">
+                <span className="text-[var(--color-stamp-red)] text-lg mt-[-2px]">✎</span>
                 <div className="flex-1">
-                  <div className="text-xs text-[var(--color-stamp-red)] font-semibold mb-1">
-                    {gem.gemType === 'hidden_gem' ? 'HIDDEN GEM' : 
-                     gem.gemType === 'tip' ? 'PRO TIP' : 'WARNING'}
+                  <div className="text-xs text-[var(--color-stamp-red)] font-semibold mb-1 uppercase tracking-wider">
+                    {gem.gemType === 'hidden_gem' ? 'Hidden Gem' : 
+                     gem.gemType === 'tip' ? 'Pro Tip' : 'Warning'}
                   </div>
-                  <div className="font-semibold text-[var(--color-stamp-red)]">{gem.title}</div>
-                  <div className="text-sm mt-1">{gem.description}</div>
+                  <div className="font-semibold text-[var(--color-stamp-red)] mb-1">{gem.title}</div>
+                  <div className="text-sm text-gray-700 leading-relaxed">{gem.description}</div>
+                  {gem.insiderInfo && (
+                    <div className="text-xs text-gray-500 mt-2 italic">
+                      💡 {gem.insiderInfo}
+                    </div>
+                  )}
                 </div>
                 <button 
                   onClick={() => console.log('Delete gem:', gem.id)}
-                  className="ml-2 text-gray-400 hover:text-red-600"
+                  className="ml-2 text-gray-400 hover:text-red-600 transition-colors"
+                  aria-label="Delete gem"
                 >
                   ×
                 </button>
@@ -136,6 +156,7 @@ export default function ActivityEditor({
           <button 
             onClick={() => setShowMenu(!showMenu)}
             className="p-1 hover:bg-gray-100 rounded"
+            aria-label="Activity options"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-gray-400">
               <path d="M8 6.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM8 9.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM8 14.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>

@@ -1,46 +1,28 @@
 // app/editor/[id]/editor-client.tsx
-// Client-side editor with debounced autosave; typed end-to-end (no `any`), no unused vars.
+// Client-side editor using modular components and hooks
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { saveTrip } from './actions';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { formatDistanceToNow } from 'date-fns';
 
-interface TripData {
-  id: string;
-  title: string;
-  subtitle: string;
-  description: string | null;
-  destination: string;
-  durationDays: number;
-  priceCents: number;
-  status: string;
-  days: Array<{
-    id: string;
-    dayNumber: number;
-    title: string;
-    subtitle: string | null;
-    activities: Array<{
-      id: string;
-      dayId: string;
-      timeBlock: 'morning' | 'afternoon' | 'evening' | 'night' | 'all-day';
-      description: string;
-      orderIndex: number;
-      gems: Array<{
-        id: string;
-        title: string;
-        description: string;
-        gemType: string;
-      }>;
-    }>;
-  }>;
-}
+// Components
+import DayEditor from './components/day-editor';
+import SaveToast from './components/save-toast';
+import AIPanel from './components/ai-panel';
 
-type DayData = TripData['days'][number];
-type ActivityData = DayData['activities'][number];
-type GemData = ActivityData['gems'][number];
+// Hooks
+import { useAutoSave } from './hooks/use-auto-save';
+import { useEditorState } from './hooks/use-editor-state';
+
+// Actions
+import { saveTrip, publishTrip } from './actions';
+
+// Types - Import from the shared types file
+import type { TripData } from './lib/types';
 
 interface EditorClientProps {
   initialData: TripData;
@@ -49,77 +31,125 @@ interface EditorClientProps {
 export default function EditorClient({ initialData }: EditorClientProps) {
   const router = useRouter();
   const [focusMode, setFocusMode] = useState(false);
-  const [aiPanelCollapsed] = useState(false); // no setter needed (prevents unused-var)
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
-  const [lastSaved, setLastSaved] = useState<Date>(new Date());
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showSaveToast, setShowSaveToast] = useState(false);
 
-  // Local state for immediate UI updates
-  const [tripData, setTripData] = useState<TripData>(initialData);
+  // Use existing hooks for state management and CRUD operations
+  const {
+    tripData,
+    updateTrip,
+    addDay,
+    updateDay,
+    deleteDay,
+    duplicateDay,
+    reorderDays,
+    addActivity,
+    updateActivity,
+    deleteActivity,
+    duplicateActivity,
+    moveActivity,
+  } = useEditorState(initialData);
 
-  // Auto-save functionality
-  const handleSave = useCallback(async () => {
-    setSaveStatus('saving');
+  // Custom save handler that shows toast
+  const handleSaveWithToast = async (data: TripData) => {
+    setShowSaveToast(true);
     try {
-      await saveTrip(tripData);
-      setSaveStatus('saved');
-      setLastSaved(new Date());
-
-      // After successful save, reload the page if any temp IDs exist
-      if (
-        tripData.days.some((d) => d.id.startsWith('temp-')) ||
-        tripData.days.some((d) => d.activities.some((a) => a.id.startsWith('temp-')))
-      ) {
-        router.refresh();
-      }
+      const result = await saveTrip(data);
+      setTimeout(() => setShowSaveToast(false), 2000);
+      return result;
     } catch (error) {
-      console.error('Save failed:', error);
-      setSaveStatus('error');
+      setTimeout(() => setShowSaveToast(false), 4000);
+      throw error;
     }
-  }, [tripData, router]);
+  };
 
-  // Debounced auto-save
-  const debouncedSave = useCallback(() => {
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(() => {
-      void handleSave();
-    }, 2000); // 2s delay
-  }, [handleSave]);
+  // Use auto-save hook with toast integration
+  const {
+    saveStatus,
+    lastSaved,
+    debouncedSave,
+    saveImmediately,
+  } = useAutoSave({
+    tripData,
+    onSave: handleSaveWithToast,
+    delay: 2000,
+  });
 
-  // Update trip data and trigger auto-save
-  const updateTrip = useCallback(
-    (updates: Partial<TripData>) => {
-      setTripData((prev) => ({ ...prev, ...updates }));
-      debouncedSave();
-    },
-    [debouncedSave]
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   );
 
-  const updateDay = useCallback(
-    (dayId: string, updates: Partial<DayData>) => {
-      setTripData((prev) => ({
-        ...prev,
-        days: prev.days.map((day) => (day.id === dayId ? { ...day, ...updates } : day)),
-      }));
+  // Handle drag end for reordering days
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = tripData.days.findIndex(d => d.id === active.id);
+      const newIndex = tripData.days.findIndex(d => d.id === over.id);
+      
+      reorderDays(oldIndex, newIndex);
       debouncedSave();
-    },
-    [debouncedSave]
-  );
+    }
+  };
 
-  const addDay = useCallback(() => {
-    const newDay: DayData = {
-      id: `temp-${Date.now()}`,
-      dayNumber: tripData.days.length + 1,
-      title: `Day ${tripData.days.length + 1}`,
-      subtitle: null,
-      activities: [],
-    };
-    setTripData((prev) => ({
-      ...prev,
-      days: [...prev.days, newDay],
-    }));
+  // Handle publish action
+  const handlePublish = async () => {
+    if (window.confirm('Publish this trip? It will be visible to all users.')) {
+      updateTrip({ status: 'published' });
+      await saveImmediately();
+      await publishTrip(tripData.id);
+      router.push(`/trips/${tripData.id}`);
+    }
+  };
+
+  // Trigger auto-save on any update
+  const updateTripWithSave = (updates: Partial<TripData>) => {
+    updateTrip(updates);
     debouncedSave();
-  }, [tripData.days.length, debouncedSave]);
+  };
+
+  const updateDayWithSave = (dayId: string, updates: Parameters<typeof updateDay>[1]) => {
+    updateDay(dayId, updates);
+    debouncedSave();
+  };
+
+  const addDayWithSave = () => {
+    addDay();
+    debouncedSave();
+  };
+
+  const deleteDayWithSave = (dayId: string) => {
+    deleteDay(dayId);
+    debouncedSave();
+  };
+
+  const duplicateDayWithSave = (dayId: string) => {
+    duplicateDay(dayId);
+    debouncedSave();
+  };
+
+  const addActivityWithSave = (dayId: string) => {
+    addActivity(dayId);
+    debouncedSave();
+  };
+
+  const updateActivityWithSave = (dayId: string, activityId: string, updates: Parameters<typeof updateActivity>[2]) => {
+    updateActivity(dayId, activityId, updates);
+    debouncedSave();
+  };
+
+  const deleteActivityWithSave = (dayId: string, activityId: string) => {
+    deleteActivity(dayId, activityId);
+    debouncedSave();
+  };
+
+  const duplicateActivityWithSave = (dayId: string, activityId: string) => {
+    duplicateActivity(dayId, activityId);
+    debouncedSave();
+  };
 
   return (
     <div className="min-h-screen bg-[var(--color-paper)]">
@@ -131,46 +161,43 @@ export default function EditorClient({ initialData }: EditorClientProps) {
               TripNotes CC
             </a>
             <div className="flex items-center gap-2 px-3 py-1 bg-[var(--color-paper)] rounded-full text-xs">
-              {saveStatus === 'saving' && (
-                <>
-                  <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
-                  <span>Saving...</span>
-                </>
-              )}
-              {saveStatus === 'saved' && (
-                <>
-                  <span className="w-2 h-2 bg-green-500 rounded-full" />
-                  <span>All changes saved</span>
-                </>
-              )}
-              {saveStatus === 'error' && (
-                <>
-                  <span className="w-2 h-2 bg-red-500 rounded-full" />
-                  <span>Save failed</span>
-                </>
-              )}
+              <span className="text-gray-500">
+                Last saved {formatDistanceToNow(lastSaved, { addSuffix: true })}
+              </span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 text-sm border border-[var(--color-pencil-gray)] rounded hover:bg-gray-50">
+            <button 
+              onClick={() => saveImmediately()}
+              className="px-4 py-2 text-sm border border-[var(--color-pencil-gray)] rounded hover:bg-gray-50"
+            >
               Save Draft
             </button>
-            <button className="px-4 py-2 text-sm border border-[var(--color-pencil-gray)] rounded hover:bg-gray-50">
+            <button 
+              onClick={() => router.push(`/preview/${tripData.id}`)}
+              className="px-4 py-2 text-sm border border-[var(--color-pencil-gray)] rounded hover:bg-gray-50"
+            >
               Preview
             </button>
             <button
-              onClick={() => setFocusMode((v) => !v)}
+              onClick={() => setFocusMode(!focusMode)}
               className="px-4 py-2 text-sm border border-[var(--color-ai-purple)] text-[var(--color-ai-purple)] rounded hover:bg-purple-50"
             >
               {focusMode ? '👁 Show AI' : '✨ AI Assist'}
             </button>
-            <button className="px-4 py-2 text-sm bg-[var(--color-ink)] text-white rounded hover:opacity-90">
+            <button 
+              onClick={handlePublish}
+              className="px-4 py-2 text-sm bg-[var(--color-ink)] text-white rounded hover:opacity-90"
+            >
               Publish Trip
             </button>
           </div>
         </div>
       </div>
+
+      {/* Save Status Toast */}
+      <SaveToast status={saveStatus} show={showSaveToast} />
 
       {/* Main Content */}
       <div className="flex max-w-[1400px] mx-auto">
@@ -182,20 +209,20 @@ export default function EditorClient({ initialData }: EditorClientProps) {
               <input
                 type="text"
                 value={tripData.title}
-                onChange={(e) => updateTrip({ title: e.target.value })}
+                onChange={(e) => updateTripWithSave({ title: e.target.value })}
                 className="w-full text-3xl font-serif text-[var(--color-ink)] bg-transparent border-none outline-none focus:bg-[var(--color-highlighter)]/10 px-2 -mx-2"
                 placeholder="Trip Title"
               />
               <input
                 type="text"
                 value={tripData.subtitle}
-                onChange={(e) => updateTrip({ subtitle: e.target.value })}
+                onChange={(e) => updateTripWithSave({ subtitle: e.target.value })}
                 className="w-full text-base text-gray-600 bg-transparent border-none outline-none mt-2 focus:bg-[var(--color-highlighter)]/10 px-2 -mx-2"
                 placeholder="Duration • Season • Budget"
               />
               <textarea
                 value={tripData.description || ''}
-                onChange={(e) => updateTrip({ description: e.target.value })}
+                onChange={(e) => updateTripWithSave({ description: e.target.value })}
                 className="w-full text-base text-gray-700 bg-transparent border-none outline-none mt-4 focus:bg-[var(--color-highlighter)]/10 px-2 -mx-2 resize-none min-h-[80px]"
                 placeholder="Describe your trip - what makes it special, who it's for, what travelers will experience..."
               />
@@ -212,7 +239,7 @@ export default function EditorClient({ initialData }: EditorClientProps) {
                   <input
                     type="text"
                     value={tripData.destination}
-                    onChange={(e) => updateTrip({ destination: e.target.value })}
+                    onChange={(e) => updateTripWithSave({ destination: e.target.value })}
                     className="w-full px-2 py-1 text-sm border border-[var(--color-pencil-gray)] rounded focus:border-[var(--color-stamp-red)] outline-none"
                     placeholder="City, Country"
                   />
@@ -223,7 +250,7 @@ export default function EditorClient({ initialData }: EditorClientProps) {
                     <input
                       type="number"
                       value={tripData.durationDays}
-                      onChange={(e) => updateTrip({ durationDays: parseInt(e.target.value, 10) || 1 })}
+                      onChange={(e) => updateTripWithSave({ durationDays: parseInt(e.target.value, 10) || 1 })}
                       className="w-16 px-2 py-1 text-sm border border-[var(--color-pencil-gray)] rounded focus:border-[var(--color-stamp-red)] outline-none"
                       min={1}
                       max={30}
@@ -239,7 +266,7 @@ export default function EditorClient({ initialData }: EditorClientProps) {
                       type="number"
                       value={(tripData.priceCents / 100).toFixed(0)}
                       onChange={(e) =>
-                        updateTrip({ priceCents: (parseInt(e.target.value, 10) || 0) * 100 })
+                        updateTripWithSave({ priceCents: (parseInt(e.target.value, 10) || 0) * 100 })
                       }
                       className="w-20 px-2 py-1 text-sm border border-[var(--color-pencil-gray)] rounded focus:border-[var(--color-stamp-red)] outline-none"
                       min={5}
@@ -251,7 +278,7 @@ export default function EditorClient({ initialData }: EditorClientProps) {
                   <label className="block text-xs text-gray-600 mb-1">Status</label>
                   <select
                     value={tripData.status}
-                    onChange={(e) => updateTrip({ status: e.target.value })}
+                    onChange={(e) => updateTripWithSave({ status: e.target.value })}
                     className="w-full px-2 py-1 text-sm border border-[var(--color-pencil-gray)] rounded focus:border-[var(--color-stamp-red)] outline-none"
                   >
                     <option value="draft">Draft</option>
@@ -261,15 +288,30 @@ export default function EditorClient({ initialData }: EditorClientProps) {
               </div>
             </div>
 
-            {/* Days */}
-            {tripData.days.map((day) => (
-              <DayEditor key={day.id} day={day} onUpdate={(updates) => updateDay(day.id, updates)} />
-            ))}
+            {/* Days with Drag and Drop */}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={tripData.days.map(d => d.id)} strategy={verticalListSortingStrategy}>
+                {tripData.days.map((day) => (
+                  <DayEditor
+                    key={day.id}
+                    day={day}
+                    onUpdate={(updates) => updateDayWithSave(day.id, updates)}
+                    onDelete={() => deleteDayWithSave(day.id)}
+                    onDuplicate={() => duplicateDayWithSave(day.id)}
+                    onAddActivity={() => addActivityWithSave(day.id)}
+                    onUpdateActivity={(activityId, updates) => updateActivityWithSave(day.id, activityId, updates)}
+                    onDeleteActivity={(activityId) => deleteActivityWithSave(day.id, activityId)}
+                    onDuplicateActivity={(activityId) => duplicateActivityWithSave(day.id, activityId)}
+                    onMoveActivity={moveActivity}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
 
             {/* Add Day Button */}
             <div className="p-6 border-t border-dashed border-[var(--color-pencil-gray)] flex justify-center">
               <button
-                onClick={addDay}
+                onClick={addDayWithSave}
                 className="px-6 py-3 border border-dashed border-[var(--color-pencil-gray)] rounded hover:border-[var(--color-stamp-red)] hover:bg-red-50/50 text-gray-600 hover:text-[var(--color-stamp-red)] transition-colors"
               >
                 + Add Day
@@ -304,213 +346,16 @@ export default function EditorClient({ initialData }: EditorClientProps) {
         {/* AI Panel */}
         {!focusMode && (
           <div className="w-80 p-6 space-y-4">
-            <AIPanel collapsed={aiPanelCollapsed} />
+            <AIPanel 
+              tripId={tripData.id}
+              onSuggestionClick={(suggestion) => {
+                console.log('Apply AI suggestion:', suggestion);
+                // In the future, this could automatically update the trip content
+              }}
+            />
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// Day Editor Component
-function DayEditor({
-  day,
-  onUpdate,
-}: {
-  day: DayData;
-  onUpdate: (updates: Partial<DayData>) => void;
-}) {
-  const [expanded, setExpanded] = useState(true);
-
-  const addActivity = () => {
-    const newActivity: ActivityData = {
-      id: `temp-${Date.now()}`,
-      dayId: day.id,
-      timeBlock: 'morning',
-      description: '',
-      orderIndex: (day.activities?.length || 0) + 1,
-      gems: [],
-    };
-    onUpdate({
-      activities: [...(day.activities || []), newActivity],
-    });
-  };
-
-  const updateActivity = (activityId: string, updates: Partial<ActivityData>) => {
-    onUpdate({
-      activities: day.activities.map((a) => (a.id === activityId ? { ...a, ...updates } : a)),
-    });
-  };
-
-  return (
-    <div className="border-b border-[var(--color-pencil-gray)]">
-      <div
-        className="p-4 bg-[var(--color-paper)] flex items-center justify-between cursor-pointer hover:bg-[var(--color-paper)]/50"
-        onClick={() => setExpanded((v) => !v)}
-      >
-        <div className="flex items-center gap-3">
-          <span className="w-8 h-8 bg-[var(--color-stamp-red)] text-white rounded flex items-center justify-center font-semibold text-sm">
-            {day.dayNumber}
-          </span>
-          <input
-            type="text"
-            value={day.title}
-            onChange={(e) => {
-              e.stopPropagation();
-              onUpdate({ title: e.target.value });
-            }}
-            onClick={(e) => e.stopPropagation()}
-            className="text-base font-semibold bg-transparent border-none outline-none"
-            placeholder="Day Title"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="w-7 h-7 border border-[var(--color-pencil-gray)] bg-white rounded hover:bg-gray-50 text-xs">
-            📷
-          </button>
-          <button className="w-7 h-7 border border-[var(--color-pencil-gray)] bg-white rounded hover:bg-gray-50 text-xs">
-            📍
-          </button>
-          <button className="w-7 h-7 border border-[var(--color-pencil-gray)] bg-white rounded hover:bg-gray-50 text-xs">
-            ⋮
-          </button>
-        </div>
-      </div>
-
-      {expanded && (
-        <div className="p-6">
-          {/* Activities */}
-          <div className="space-y-6">
-            {day.activities?.map((activity) => (
-              <ActivityEditor
-                key={activity.id}
-                activity={activity}
-                onUpdate={(updates) => updateActivity(activity.id, updates)}
-              />
-            ))}
-
-            {(!day.activities || day.activities.length === 0) && (
-              <div className="text-center py-8 text-gray-400">
-                <p className="mb-4">No activities yet</p>
-                <button
-                  onClick={addActivity}
-                  className="px-4 py-2 border border-dashed border-[var(--color-pencil-gray)] rounded hover:border-[var(--color-stamp-red)] hover:text-[var(--color-stamp-red)]"
-                >
-                  Add First Activity
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Add element buttons */}
-          {day.activities?.length > 0 && (
-            <div className="flex gap-2 mt-6 pt-6 border-t border-dashed border-[var(--color-pencil-gray)]">
-              <button
-                onClick={addActivity}
-                className="px-3 py-1.5 text-xs border border-dashed border-[var(--color-pencil-gray)] rounded hover:border-[var(--color-stamp-red)] hover:text-[var(--color-stamp-red)]"
-              >
-                + Time block
-              </button>
-              <button className="px-3 py-1.5 text-xs border border-dashed border-[var(--color-pencil-gray)] rounded hover:border-[var(--color-stamp-red)] hover:text-[var(--color-stamp-red)]">
-                + Hidden gem
-              </button>
-              <button className="px-3 py-1.5 text-xs border border-dashed border-[var(--color-pencil-gray)] rounded hover:border-[var(--color-stamp-red)] hover:text-[var(--color-stamp-red)]">
-                + Photo spot
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Activity Editor Component
-function ActivityEditor({
-  activity,
-  onUpdate,
-}: {
-  activity: ActivityData;
-  onUpdate: (updates: Partial<ActivityData>) => void;
-}) {
-  const [autoResize, setAutoResize] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (textareaRef.current && autoResize) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-    }
-  }, [activity.description, autoResize]);
-
-  return (
-    <div className="p-4 bg-[var(--color-paper)] rounded">
-      <select
-        value={activity.timeBlock}
-        onChange={(e) => onUpdate({ timeBlock: e.target.value as ActivityData['timeBlock'] })}
-        className="text-xs font-semibold tracking-wider text-[var(--color-stamp-red)] bg-transparent border-none outline-none mb-2 cursor-pointer"
-      >
-        <option value="morning">MORNING</option>
-        <option value="afternoon">AFTERNOON</option>
-        <option value="evening">EVENING</option>
-        <option value="night">NIGHT</option>
-        <option value="all-day">ALL DAY</option>
-      </select>
-      <textarea
-        ref={textareaRef}
-        value={activity.description}
-        onChange={(e) => {
-          onUpdate({ description: e.target.value });
-          setAutoResize(true);
-        }}
-        className="w-full bg-transparent border-none outline-none resize-none min-h-[60px]"
-        placeholder="Add activities for this time block..."
-      />
-
-      {/* Gems */}
-      {activity.gems?.map((gem: GemData) => (
-        <div
-          key={gem.id}
-          className="mt-4 pl-4 border-l-3 border-[var(--color-stamp-red)] bg-gradient-to-r from-[var(--color-highlighter)]/20 to-transparent p-3"
-        >
-          <div className="text-xs text-[var(--color-stamp-red)] font-semibold mb-1">HIDDEN GEM</div>
-          <div className="font-semibold text-[var(--color-stamp-red)]">{gem.title}</div>
-          <div className="text-sm mt-1">{gem.description}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// AI Panel Component
-function AIPanel({ collapsed }: { collapsed: boolean }) {
-  return (
-    <div className="bg-white rounded border border-[var(--color-pencil-gray)] shadow-sm overflow-hidden">
-      <div className="p-3 bg-[var(--color-paper)] border-b border-[var(--color-pencil-gray)] flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-semibold">
-          <span className="w-4 h-4 bg-[var(--color-ai-purple)] text-white rounded text-[10px] flex items-center justify-center">
-            ✨
-          </span>
-          <span>AI Suggestions</span>
-        </div>
-        <span className="text-xs">{collapsed ? '▲' : '▼'}</span>
-      </div>
-      {!collapsed && (
-        <div className="p-4 text-sm space-y-3">
-          <div className="p-2 bg-[var(--color-paper)] rounded cursor-pointer hover:bg-purple-50 hover:border-l-2 hover:border-[var(--color-ai-purple)] transition-all">
-            Add TeamLab Borderless closing info
-          </div>
-          <div className="p-2 bg-[var(--color-paper)] rounded cursor-pointer hover:bg-purple-50 hover:border-l-2 hover:border-[var(--color-ai-purple)] transition-all">
-            Include JR Pass cost comparison
-          </div>
-          <div className="p-2 bg-[var(--color-paper)] rounded cursor-pointer hover:bg-purple-50 hover:border-l-2 hover:border-[var(--color-ai-purple)] transition-all">
-            Add vegetarian options
-          </div>
-          <button className="w-full py-2 text-xs bg-white border border-[var(--color-ai-purple)] text-[var(--color-ai-purple)] rounded hover:bg-purple-50">
-            Generate More
-          </button>
-        </div>
-      )}
     </div>
   );
 }

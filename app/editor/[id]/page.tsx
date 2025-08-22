@@ -83,7 +83,7 @@ export default async function EditorPage({ params }: EditorPageProps) {
     : [];
 
   // Organize data
-  const tripData = {
+  const tripData: TripData = {
     ...trip,
     days: days.map(day => ({
       ...day,

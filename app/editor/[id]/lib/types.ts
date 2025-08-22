@@ -7,6 +7,7 @@ export interface Gem {
   description: string;
   gemType: 'hidden_gem' | 'tip' | 'warning';
   insiderInfo?: string | null;
+  metadata?: unknown;
 }
 
 export interface Activity {
@@ -15,9 +16,14 @@ export interface Activity {
   timeBlock: string;
   description: string;
   orderIndex: number;
-  locationName?: string;
-  locationLat?: string;
-  locationLng?: string;
+  locationName?: string | null;
+  locationLat?: string | null;
+  locationLng?: string | null;
+  activityType?: string | null;
+  estimatedCost?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  title?: string | null;
   gems: Gem[];
 }
 

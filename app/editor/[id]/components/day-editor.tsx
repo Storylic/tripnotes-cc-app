@@ -18,7 +18,7 @@ interface DayEditorProps {
   onUpdateActivity: (activityId: string, updates: Partial<Activity>) => void;
   onDeleteActivity: (activityId: string) => void;
   onDuplicateActivity: (activityId: string) => void;
-  onMoveActivity: (activityId: string, targetDayId: string, targetIndex: number) => void;
+  onMoveActivity?: (activityId: string, targetDayId: string, targetIndex: number) => void;
 }
 
 export default function DayEditor({
@@ -30,7 +30,7 @@ export default function DayEditor({
   onUpdateActivity,
   onDeleteActivity,
   onDuplicateActivity,
-  onMoveActivity,
+  // onMoveActivity is optional for future implementation
 }: DayEditorProps) {
   const [expanded, setExpanded] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
@@ -52,15 +52,6 @@ export default function DayEditor({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const handleAddActivity = () => {
-    onAddActivity();
-  };
-
-  // const handleAddGem = (activityId: string) => {
-  //   // This will be implemented in the activity editor
-  //   console.log('Add gem to activity:', activityId);
-  // };
-
   return (
     <div 
       ref={setNodeRef} 
@@ -68,92 +59,104 @@ export default function DayEditor({
       className={`border-b border-[var(--color-pencil-gray)] ${isDragging ? 'z-50' : ''}`}
     >
       {/* Day Header */}
-      <div className="p-4 bg-[var(--color-paper)] flex items-center justify-between">
-        <div className="flex items-center gap-3 flex-1">
-          {/* Drag Handle */}
-          <div 
-            {...attributes} 
-            {...listeners}
-            className="cursor-move p-1 hover:bg-gray-100 rounded"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-gray-400">
-              <path d="M2 5.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM2 10.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM6.5 5.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM6.5 10.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM11 5.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM11 10.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z"/>
-            </svg>
+      <div 
+        className="p-4 bg-[var(--color-paper)] cursor-pointer hover:bg-[var(--color-paper)]/70 transition-colors"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Drag Handle */}
+            <div 
+              {...attributes} 
+              {...listeners}
+              className="cursor-move p-1 hover:bg-gray-100 rounded"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-gray-400">
+                <path d="M2 5.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM2 10.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM6.5 5.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM6.5 10.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM11 5.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM11 10.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z"/>
+              </svg>
+            </div>
+
+            {/* Day Number */}
+            <span className="w-10 h-10 bg-[var(--color-stamp-red)] text-white rounded flex items-center justify-center font-bold">
+              {day.dayNumber}
+            </span>
+
+            {/* Day Title */}
+            <input
+              type="text"
+              value={day.title}
+              onChange={(e) => {
+                e.stopPropagation();
+                onUpdate({ title: e.target.value });
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="text-base font-semibold bg-transparent border-none outline-none flex-1"
+              placeholder="Day Title"
+            />
           </div>
 
-          {/* Day Number */}
-          <span className="w-8 h-8 bg-[var(--color-stamp-red)] text-white rounded flex items-center justify-center font-semibold text-sm">
-            {day.dayNumber}
-          </span>
-
-          {/* Day Title */}
-          <input
-            type="text"
-            value={day.title}
-            onChange={(e) => onUpdate({ title: e.target.value })}
-            className="text-base font-semibold bg-transparent border-none outline-none flex-1"
-            placeholder="Day Title"
-          />
-
-          {/* Expand/Collapse */}
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="p-1 hover:bg-gray-100 rounded"
-          >
-            <svg 
-              width="16" 
-              height="16" 
-              viewBox="0 0 16 16" 
-              fill="currentColor"
-              className={`transform transition-transform ${expanded ? 'rotate-180' : ''}`}
-            >
-              <path d="M8 10.5l-4-4h8l-4 4z"/>
-            </svg>
-          </button>
-        </div>
-
-        {/* Day Actions Menu */}
-        <div className="relative">
-          <button 
-            onClick={() => setShowMenu(!showMenu)}
-            className="w-7 h-7 border border-[var(--color-pencil-gray)] bg-white rounded hover:bg-gray-50 text-xs"
-          >
-            ⋮
-          </button>
-          
-          {showMenu && (
-            <>
-              <div 
-                className="fixed inset-0 z-10" 
-                onClick={() => setShowMenu(false)}
-              />
-              <div 
-                ref={menuRef}
-                className="absolute right-0 mt-1 w-48 bg-white rounded border border-[var(--color-pencil-gray)] shadow-lg z-20"
+          <div className="flex items-center gap-2">
+            {/* Expand/Collapse */}
+            <div className="p-1">
+              <svg 
+                width="16" 
+                height="16" 
+                viewBox="0 0 16 16" 
+                fill="currentColor"
+                className={`transform transition-transform text-gray-400 ${expanded ? 'rotate-180' : ''}`}
               >
-                <button
-                  onClick={() => {
-                    onDuplicate();
-                    setShowMenu(false);
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                >
-                  <span>📋</span> Duplicate Day
-                </button>
-                <button
-                  onClick={() => {
-                    if (window.confirm(`Delete "${day.title}"? This will remove all activities in this day.`)) {
-                      onDelete();
-                    }
-                    setShowMenu(false);
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 text-red-600 flex items-center gap-2 border-t border-gray-100"
-                >
-                  <span>🗑️</span> Delete Day
-                </button>
-              </div>
-            </>
-          )}
+                <path d="M8 10.5l-4-4h8l-4 4z"/>
+              </svg>
+            </div>
+
+            {/* Day Actions Menu */}
+            <div className="relative">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMenu(!showMenu);
+                }}
+                className="w-7 h-7 border border-[var(--color-pencil-gray)] bg-white rounded hover:bg-gray-50 text-xs"
+              >
+                ⋮
+              </button>
+              
+              {showMenu && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setShowMenu(false)}
+                  />
+                  <div 
+                    ref={menuRef}
+                    className="absolute right-0 mt-1 w-48 bg-white rounded border border-[var(--color-pencil-gray)] shadow-lg z-20"
+                  >
+                    <button
+                      onClick={() => {
+                        onDuplicate();
+                        setShowMenu(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <span>📋</span> Duplicate Day
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Delete "${day.title}"? This will remove all activities in this day.`)) {
+                          onDelete();
+                        }
+                        setShowMenu(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 text-red-600 flex items-center gap-2 border-t border-gray-100"
+                    >
+                      <span>🗑️</span> Delete Day
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -190,7 +193,7 @@ export default function DayEditor({
               <div className="text-center py-8 text-gray-400">
                 <p className="mb-4">No activities yet</p>
                 <button
-                  onClick={handleAddActivity}
+                  onClick={onAddActivity}
                   className="px-4 py-2 border border-dashed border-[var(--color-pencil-gray)] rounded hover:border-[var(--color-stamp-red)] hover:text-[var(--color-stamp-red)]"
                 >
                   Add First Activity
@@ -200,10 +203,10 @@ export default function DayEditor({
           </div>
 
           {/* Add element buttons */}
-          {day.activities?.length > 0 && (
+          {day.activities && day.activities.length > 0 && (
             <div className="flex gap-2 mt-6 pt-6 border-t border-dashed border-[var(--color-pencil-gray)]">
               <button 
-                onClick={handleAddActivity}
+                onClick={onAddActivity}
                 className="px-3 py-1.5 text-xs border border-dashed border-[var(--color-pencil-gray)] rounded hover:border-[var(--color-stamp-red)] hover:text-[var(--color-stamp-red)]"
               >
                 + Activity
