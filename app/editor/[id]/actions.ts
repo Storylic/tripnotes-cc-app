@@ -1,11 +1,11 @@
 // app/editor/[id]/actions.ts
-// Server actions for saving trip data with idempotency
+// Server actions for saving trip data with proper deletion handling
 
 'use server';
 
 import { db } from '@/db/client';
 import { trips, tripDays, activities, gems } from '@/db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, and } from 'drizzle-orm';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
@@ -59,8 +59,9 @@ export async function saveTrip(tripData: SaveTripData) {
   }
 
   try {
-    // Start a transaction-like save process
     console.log('Saving trip:', tripData.id);
+    console.log('Days to save:', tripData.days.length);
+    console.log('Total activities:', tripData.days.reduce((sum, day) => sum + (day.activities?.length || 0), 0));
 
     // 1. Update trip metadata
     await db
@@ -77,7 +78,7 @@ export async function saveTrip(tripData: SaveTripData) {
       })
       .where(eq(trips.id, tripData.id));
 
-    // 2. Get existing days for this trip
+    // 2. Get ALL existing days for this trip
     const existingDays = await db
       .select()
       .from(tripDays)
@@ -91,6 +92,8 @@ export async function saveTrip(tripData: SaveTripData) {
     // Delete days that are no longer in the data
     const daysToDelete = existingDayIds.filter(id => !currentDayIds.includes(id));
     if (daysToDelete.length > 0) {
+      console.log('Deleting days:', daysToDelete);
+      // Activities and gems will cascade delete
       await db
         .delete(tripDays)
         .where(inArray(tripDays.id, daysToDelete));
@@ -110,6 +113,7 @@ export async function saveTrip(tripData: SaveTripData) {
         }).returning();
         
         dayId = newDay.id;
+        console.log('Created new day:', dayId);
       } else {
         // Update existing day
         await db
@@ -124,7 +128,7 @@ export async function saveTrip(tripData: SaveTripData) {
       }
 
       // 4. Handle activities for this day
-      // Get existing activities for this day
+      // Get ALL existing activities for this specific day
       const existingActivities = await db
         .select()
         .from(activities)
@@ -138,6 +142,8 @@ export async function saveTrip(tripData: SaveTripData) {
       // Delete activities that are no longer in the data
       const activitiesToDelete = existingActivityIds.filter(id => !currentActivityIds.includes(id));
       if (activitiesToDelete.length > 0) {
+        console.log(`Deleting ${activitiesToDelete.length} activities from day ${dayId}`);
+        // Gems will cascade delete
         await db
           .delete(activities)
           .where(inArray(activities.id, activitiesToDelete));
@@ -148,33 +154,16 @@ export async function saveTrip(tripData: SaveTripData) {
         let activityId = activity.id;
 
         if (activity.id.startsWith('temp-')) {
-          // Create new activity - check if similar one exists first
-          const existingActivity = existingActivities.find(
-            a => a.timeBlock === activity.timeBlock && 
-                 a.orderIndex === activity.orderIndex
-          );
+          // Create new activity
+          const [newActivity] = await db.insert(activities).values({
+            dayId: dayId,
+            timeBlock: activity.timeBlock,
+            description: activity.description,
+            orderIndex: activity.orderIndex,
+          }).returning();
 
-          if (existingActivity) {
-            // Update existing instead of creating duplicate
-            activityId = existingActivity.id;
-            await db
-              .update(activities)
-              .set({
-                description: activity.description,
-                updatedAt: new Date(),
-              })
-              .where(eq(activities.id, existingActivity.id));
-          } else {
-            // Create new activity
-            const [newActivity] = await db.insert(activities).values({
-              dayId: dayId,
-              timeBlock: activity.timeBlock,
-              description: activity.description,
-              orderIndex: activity.orderIndex,
-            }).returning();
-
-            activityId = newActivity.id;
-          }
+          activityId = newActivity.id;
+          console.log('Created new activity:', activityId);
         } else {
           // Update existing activity
           await db
@@ -189,7 +178,7 @@ export async function saveTrip(tripData: SaveTripData) {
         }
 
         // 5. Handle gems for this activity
-        // Get existing gems
+        // Get ALL existing gems for this specific activity
         const existingGems = await db
           .select()
           .from(gems)
@@ -203,6 +192,7 @@ export async function saveTrip(tripData: SaveTripData) {
         // Delete gems that are no longer in the data
         const gemsToDelete = existingGemIds.filter(id => !currentGemIds.includes(id));
         if (gemsToDelete.length > 0) {
+          console.log(`Deleting ${gemsToDelete.length} gems from activity ${activityId}`);
           await db
             .delete(gems)
             .where(inArray(gems.id, gemsToDelete));
@@ -211,20 +201,14 @@ export async function saveTrip(tripData: SaveTripData) {
         // Process each gem
         for (const gem of activity.gems || []) {
           if (gem.id.startsWith('temp-')) {
-            // Check for duplicate before creating
-            const existingGem = existingGems.find(
-              g => g.title === gem.title && g.gemType === gem.gemType
-            );
-
-            if (!existingGem) {
-              // Create new gem only if it doesn't exist
-              await db.insert(gems).values({
-                activityId: activityId,
-                gemType: gem.gemType as 'hidden_gem' | 'tip' | 'warning',
-                title: gem.title,
-                description: gem.description,
-              });
-            }
+            // Create new gem
+            await db.insert(gems).values({
+              activityId: activityId,
+              gemType: gem.gemType as 'hidden_gem' | 'tip' | 'warning',
+              title: gem.title,
+              description: gem.description,
+            });
+            console.log('Created new gem');
           } else {
             // Update existing gem
             await db
@@ -240,7 +224,12 @@ export async function saveTrip(tripData: SaveTripData) {
       }
     }
 
+    // Force revalidation of both editor and preview pages
     revalidatePath(`/editor/${tripData.id}`);
+    revalidatePath(`/preview/${tripData.id}`);
+    revalidatePath(`/trips/${tripData.id}`);
+    
+    console.log('Save completed successfully');
     return { success: true };
   } catch (error) {
     console.error('Save error:', error);
@@ -275,7 +264,10 @@ export async function publishTrip(tripId: string) {
     })
     .where(eq(trips.id, tripId));
 
+  // Revalidate all relevant paths
   revalidatePath(`/editor/${tripId}`);
+  revalidatePath(`/preview/${tripId}`);
+  revalidatePath(`/trips/${tripId}`);
   revalidatePath('/dashboard');
   
   return { success: true };

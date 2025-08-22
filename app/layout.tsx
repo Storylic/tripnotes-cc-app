@@ -2,7 +2,7 @@
 // Root layout for TripNotes CC
 
 import type { Metadata } from 'next';
-import { Inter, Crimson_Pro } from 'next/font/google';
+import { Inter, Crimson_Pro, Kalam } from 'next/font/google';
 import './globals.css';
 
 const inter = Inter({ 
@@ -13,6 +13,12 @@ const inter = Inter({
 const crimsonPro = Crimson_Pro({ 
   subsets: ['latin'],
   variable: '--font-crimson',
+});
+
+const kalam = Kalam({ 
+  subsets: ['latin'],
+  weight: ['300', '400', '700'],
+  variable: '--font-kalam',
 });
 
 export const metadata: Metadata = {
@@ -27,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${crimsonPro.variable}`}>
+    <html lang="en" className={`${inter.variable} ${crimsonPro.variable} ${kalam.variable}`}>
       <body>{children}</body>
     </html>
   );

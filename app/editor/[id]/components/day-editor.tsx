@@ -6,7 +6,8 @@
 import { useState, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import ActivityEditor from './activity-editor';
+//import ActivityEditor from './activity-editor';
+import ActivityEditor from './activity-editor-enhanced';
 import type { TripDay, Activity } from '../lib/types';
 
 interface DayEditorProps {
@@ -183,9 +184,18 @@ export default function DayEditor({
                 onUpdate={(updates) => onUpdateActivity(activity.id, updates)}
                 onDelete={() => onDeleteActivity(activity.id)}
                 onDuplicate={() => onDuplicateActivity(activity.id)}
-                // onMove={(targetDayId, targetIndex) => 
-                //   onMoveActivity(activity.id, targetDayId, targetIndex)
-                // }
+                onAddGem={(gemType) => {
+                  // Add gem creation logic here
+                  const newGem = {
+                    id: `temp-${Date.now()}`,
+                    title: '',
+                    description: '',
+                    gemType,
+                    activityId: activity.id,
+                  };
+                  // Call your gem creation function
+                  console.log('Adding gem:', gemType, 'to activity:', activity.id);
+                }}
               />
             ))}
             

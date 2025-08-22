@@ -1,9 +1,9 @@
-// app/editor/[id]/editor-client.tsx
-// Client-side editor using modular components and hooks
+// app/editor/[id]/editor-client-fixed.tsx
+// Fixed client-side editor with proper deletion tracking
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -21,7 +21,7 @@ import { useEditorState } from './hooks/use-editor-state';
 // Actions
 import { saveTrip, publishTrip } from './actions';
 
-// Types - Import from the shared types file
+// Types
 import type { TripData } from './lib/types';
 
 interface EditorClientProps {
@@ -32,8 +32,9 @@ export default function EditorClient({ initialData }: EditorClientProps) {
   const router = useRouter();
   const [focusMode, setFocusMode] = useState(false);
   const [showSaveToast, setShowSaveToast] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Use existing hooks for state management and CRUD operations
+  // Use existing hooks for state management
   const {
     tripData,
     updateTrip,
@@ -49,12 +50,22 @@ export default function EditorClient({ initialData }: EditorClientProps) {
     moveActivity,
   } = useEditorState(initialData);
 
+  // Track changes
+  useEffect(() => {
+    setHasUnsavedChanges(true);
+  }, [tripData]);
+
   // Custom save handler that shows toast
   const handleSaveWithToast = async (data: TripData) => {
     setShowSaveToast(true);
     try {
       const result = await saveTrip(data);
+      setHasUnsavedChanges(false);
       setTimeout(() => setShowSaveToast(false), 2000);
+      
+      // Force router refresh after successful save
+      router.refresh();
+      
       return result;
     } catch (error) {
       setTimeout(() => setShowSaveToast(false), 4000);
@@ -98,58 +109,68 @@ export default function EditorClient({ initialData }: EditorClientProps) {
   // Handle publish action
   const handlePublish = async () => {
     if (window.confirm('Publish this trip? It will be visible to all users.')) {
-      updateTrip({ status: 'published' });
+      // Save immediately before publishing
       await saveImmediately();
       await publishTrip(tripData.id);
       router.push(`/trips/${tripData.id}`);
     }
   };
 
-  // Trigger auto-save on any update
-  const updateTripWithSave = (updates: Partial<TripData>) => {
+  // Enhanced update functions that properly trigger auto-save
+  const updateTripWithSave = useCallback((updates: Partial<TripData>) => {
     updateTrip(updates);
     debouncedSave();
-  };
+  }, [updateTrip, debouncedSave]);
 
-  const updateDayWithSave = (dayId: string, updates: Parameters<typeof updateDay>[1]) => {
+  const updateDayWithSave = useCallback((dayId: string, updates: Parameters<typeof updateDay>[1]) => {
     updateDay(dayId, updates);
     debouncedSave();
-  };
+  }, [updateDay, debouncedSave]);
 
-  const addDayWithSave = () => {
+  const addDayWithSave = useCallback(() => {
     addDay();
     debouncedSave();
-  };
+  }, [addDay, debouncedSave]);
 
-  const deleteDayWithSave = (dayId: string) => {
+  const deleteDayWithSave = useCallback((dayId: string) => {
     deleteDay(dayId);
-    debouncedSave();
-  };
+    // Force immediate save for deletions
+    saveImmediately();
+  }, [deleteDay, saveImmediately]);
 
-  const duplicateDayWithSave = (dayId: string) => {
+  const duplicateDayWithSave = useCallback((dayId: string) => {
     duplicateDay(dayId);
     debouncedSave();
-  };
+  }, [duplicateDay, debouncedSave]);
 
-  const addActivityWithSave = (dayId: string) => {
+  const addActivityWithSave = useCallback((dayId: string) => {
     addActivity(dayId);
     debouncedSave();
-  };
+  }, [addActivity, debouncedSave]);
 
-  const updateActivityWithSave = (dayId: string, activityId: string, updates: Parameters<typeof updateActivity>[2]) => {
+  const updateActivityWithSave = useCallback((dayId: string, activityId: string, updates: Parameters<typeof updateActivity>[2]) => {
     updateActivity(dayId, activityId, updates);
     debouncedSave();
-  };
+  }, [updateActivity, debouncedSave]);
 
-  const deleteActivityWithSave = (dayId: string, activityId: string) => {
+  // IMPORTANT: Use immediate save for deletions
+  const deleteActivityWithSave = useCallback((dayId: string, activityId: string) => {
+    console.log('Deleting activity:', activityId, 'from day:', dayId);
     deleteActivity(dayId, activityId);
-    debouncedSave();
-  };
+    // Force immediate save for deletions instead of debounced
+    saveImmediately();
+  }, [deleteActivity, saveImmediately]);
 
-  const duplicateActivityWithSave = (dayId: string, activityId: string) => {
+  const duplicateActivityWithSave = useCallback((dayId: string, activityId: string) => {
     duplicateActivity(dayId, activityId);
     debouncedSave();
-  };
+  }, [duplicateActivity, debouncedSave]);
+
+  // Manual save that forces immediate save
+  const handleManualSave = useCallback(async () => {
+    console.log('Manual save triggered');
+    await saveImmediately();
+  }, [saveImmediately]);
 
   return (
     <div className="min-h-screen bg-[var(--color-paper)]">
@@ -161,21 +182,43 @@ export default function EditorClient({ initialData }: EditorClientProps) {
               TripNotes CC
             </a>
             <div className="flex items-center gap-2 px-3 py-1 bg-[var(--color-paper)] rounded-full text-xs">
-              <span className="text-gray-500">
-                Last saved {formatDistanceToNow(lastSaved, { addSuffix: true })}
+              {saveStatus === 'saving' ? (
+                <>
+                  <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                  <span>Saving...</span>
+                </>
+              ) : hasUnsavedChanges ? (
+                <>
+                  <span className="w-2 h-2 bg-yellow-500 rounded-full" />
+                  <span>Unsaved changes</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 bg-green-500 rounded-full" />
+                  <span>All changes saved</span>
+                </>
+              )}
+              <span className="text-gray-500 ml-2">
+                {formatDistanceToNow(lastSaved, { addSuffix: true })}
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <button 
-              onClick={() => saveImmediately()}
-              className="px-4 py-2 text-sm border border-[var(--color-pencil-gray)] rounded hover:bg-gray-50"
+              onClick={handleManualSave}
+              disabled={saveStatus === 'saving'}
+              className="px-4 py-2 text-sm border border-[var(--color-pencil-gray)] rounded hover:bg-gray-50 disabled:opacity-50"
             >
-              Save Draft
+              {saveStatus === 'saving' ? 'Saving...' : 'Save Draft'}
             </button>
             <button 
-              onClick={() => router.push(`/preview/${tripData.id}`)}
+              onClick={() => {
+                // Save before preview
+                saveImmediately().then(() => {
+                  router.push(`/preview/${tripData.id}`);
+                });
+              }}
               className="px-4 py-2 text-sm border border-[var(--color-pencil-gray)] rounded hover:bg-gray-50"
             >
               Preview
@@ -317,29 +360,6 @@ export default function EditorClient({ initialData }: EditorClientProps) {
                 + Add Day
               </button>
             </div>
-
-            {/* Stats Bar */}
-            <div className="px-6 py-3 bg-[var(--color-paper)] border-t border-[var(--color-pencil-gray)] flex gap-6 text-xs text-gray-600">
-              <div>
-                Days:{' '}
-                <span className="font-mono font-semibold text-[var(--color-ink)]">
-                  {tripData.days.length}
-                </span>
-              </div>
-              <div>
-                Price:{' '}
-                <span className="font-mono font-semibold text-[var(--color-ink)]">
-                  ${(tripData.priceCents / 100).toFixed(0)}
-                </span>
-              </div>
-              <div>
-                Status:{' '}
-                <span className="font-semibold text-[var(--color-ink)]">{tripData.status}</span>
-              </div>
-              <div className="ml-auto">
-                Last saved {formatDistanceToNow(lastSaved, { addSuffix: true })}
-              </div>
-            </div>
           </div>
         </div>
 
@@ -350,7 +370,6 @@ export default function EditorClient({ initialData }: EditorClientProps) {
               tripId={tripData.id}
               onSuggestionClick={(suggestion) => {
                 console.log('Apply AI suggestion:', suggestion);
-                // In the future, this could automatically update the trip content
               }}
             />
           </div>

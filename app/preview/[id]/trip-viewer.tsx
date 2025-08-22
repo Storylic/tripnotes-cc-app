@@ -1,5 +1,5 @@
 // app/preview/[id]/trip-viewer.tsx
-// Client component for viewing trips (preview and public view)
+// Client component for viewing trips with aligned time blocks
 
 'use client';
 
@@ -238,12 +238,14 @@ export default function TripViewer({ trip, isOwner, hasPurchased, isPreview }: T
                     <div className="space-y-6">
                       {day.activities.map((activity) => (
                         <div key={activity.id} className="relative">
-                          <div className="flex gap-4">
-                            <div className="flex-shrink-0">
-                              <div className="text-xs font-semibold text-[var(--color-stamp-red)] uppercase tracking-wider">
-                                {activity.timeBlock}
-                              </div>
+                          {/* FIXED: Use grid layout for consistent alignment */}
+                          <div className="grid grid-cols-[100px_1fr] gap-4">
+                            {/* Time block with fixed width */}
+                            <div className="text-xs font-semibold text-[var(--color-stamp-red)] uppercase tracking-wider text-right">
+                              {activity.timeBlock.replace('-', ' ')}
                             </div>
+                            
+                            {/* Content aligned consistently */}
                             <div className="flex-1">
                               <div className="text-gray-700 whitespace-pre-wrap">
                                 {activity.description}
@@ -257,7 +259,10 @@ export default function TripViewer({ trip, isOwner, hasPurchased, isPreview }: T
                                 >
                                   <div className="bg-gradient-to-r from-[var(--color-highlighter)]/30 to-transparent p-3 -ml-4">
                                     <div className="flex items-start gap-2">
-                                      <span className="text-[var(--color-stamp-red)]">✎</span>
+                                      <span className="text-[var(--color-stamp-red)]">
+                                        {gem.gemType === 'hidden_gem' ? '💎' : 
+                                         gem.gemType === 'tip' ? '💡' : '⚠️'}
+                                      </span>
                                       <div>
                                         <div className="font-semibold text-[var(--color-stamp-red)] mb-1">
                                           {gem.title}

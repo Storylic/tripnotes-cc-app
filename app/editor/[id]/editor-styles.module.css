@@ -1,0 +1,331 @@
+/* app/editor/[id]/editor-styles.module.css */
+/* Joy-inducing styles for the TripNotes editor */
+
+/* Pencil writing animation */
+.pencilWriting {
+  animation: pencilDraw 0.5s ease, bounce 1s ease-in-out infinite;
+}
+
+/* Notebook paper texture */
+.editorContainer {
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 27px,
+      #E5E2DD 28px
+    );
+  background-size: 100% 28px;
+  background-attachment: local;
+}
+
+/* Handwritten feel for time blocks */
+.timeBlockHeader {
+  font-family: 'Kalam', cursive;
+  color: var(--color-stamp-red);
+  position: relative;
+  display: inline-block;
+  border-bottom: 2px solid var(--color-stamp-red);
+  padding-bottom: 2px;
+  margin-bottom: 12px;
+  transform: rotate(-0.5deg);
+  transition: transform 0.2s ease;
+}
+
+.timeBlockHeader:hover {
+  transform: rotate(0deg) scale(1.02);
+}
+
+/* Hidden gem handwritten margin notes */
+.hiddenGem {
+  position: relative;
+  margin-left: -8px;
+  padding-left: 20px;
+  transform: rotate(-0.3deg);
+  transition: all 0.3s ease;
+  background: linear-gradient(
+    105deg,
+    rgba(244, 228, 193, 0.3) 0%,
+    transparent 70%
+  );
+}
+
+.hiddenGem::before {
+  content: "✎";
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  color: var(--color-stamp-red);
+  font-size: 18px;
+  animation: pencilDraw 0.5s ease;
+}
+
+.hiddenGem:hover {
+  transform: rotate(0deg) translateX(4px);
+  background: linear-gradient(
+    105deg,
+    rgba(244, 228, 193, 0.5) 0%,
+    transparent 70%
+  );
+}
+
+/* Day number stamp effect */
+.dayStamp {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  background: var(--color-stamp-red);
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  border-radius: 50%;
+  transform: rotate(-3deg);
+  box-shadow: 
+    2px 2px 4px rgba(0, 0, 0, 0.1),
+    inset -1px -1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.dayStamp:hover {
+  transform: rotate(0deg) scale(1.1);
+}
+
+/* Floating save toast */
+.saveToast {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  background: white;
+  border: 1px solid var(--color-pencil-gray);
+  border-radius: 8px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.12);
+  animation: slideUp 0.3s ease;
+  z-index: 1000;
+}
+
+.saveToast.saving {
+  border-color: var(--color-ai-purple);
+}
+
+.saveToast.saved {
+  border-color: var(--color-success-green);
+  animation: slideUp 0.3s ease, pulse 0.5s ease 0.3s;
+}
+
+.saveToast.error {
+  border-color: var(--color-warning-amber);
+  animation: slideUp 0.3s ease, shake 0.5s ease;
+}
+
+/* Pencil writing animation */
+@keyframes pencilDraw {
+  0% {
+    opacity: 0;
+    transform: translateX(-10px) rotate(-45deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(0) rotate(-45deg);
+  }
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+}
+
+/* Save toast animations */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+/* Smart placeholder variations */
+.activityTextarea:placeholder-shown::placeholder {
+  color: #9CA3AF;
+  font-style: italic;
+}
+
+.morningPlaceholder::placeholder {
+  content: "Start the day with breakfast at...";
+}
+
+.afternoonPlaceholder::placeholder {
+  content: "Explore the main attractions...";
+}
+
+.eveningPlaceholder::placeholder {
+  content: "Wind down with dinner at...";
+}
+
+/* Focus mode transitions */
+.aiPanel {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: right center;
+}
+
+.aiPanel.collapsed {
+  transform: translateX(calc(100% - 48px));
+  opacity: 0.3;
+}
+
+.aiPanel.collapsed:hover {
+  transform: translateX(calc(100% - 56px));
+  opacity: 0.5;
+}
+
+/* Completion celebration */
+.completionBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: white;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  animation: celebrate 0.5s ease;
+}
+
+@keyframes celebrate {
+  0% {
+    transform: scale(0) rotate(180deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+/* Paper texture overlay */
+.paperTexture {
+  position: relative;
+}
+
+.paperTexture::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 50px,
+      rgba(229, 226, 221, 0.03) 50px,
+      rgba(229, 226, 221, 0.03) 100px
+    );
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+/* Subtle shadows for depth */
+.editorCard {
+  background: white;
+  border: 1px solid var(--color-pencil-gray);
+  border-radius: 2px;
+  box-shadow: 
+    0 1px 1px rgba(0, 0, 0, 0.04),
+    0 2px 2px rgba(0, 0, 0, 0.04),
+    0 4px 4px rgba(0, 0, 0, 0.04),
+    0 8px 8px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.3s ease;
+}
+
+.editorCard:hover {
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 2px 4px rgba(0, 0, 0, 0.06),
+    0 4px 8px rgba(0, 0, 0, 0.06),
+    0 8px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* Ink color variations for different content */
+.gemText {
+  color: #8B4513; /* Sepia brown */
+}
+
+.tipText {
+  color: #1E3A8A; /* Deep blue */
+}
+
+.warningText {
+  color: #B91C1C; /* Deep red */
+}
+
+/* Natural handwriting variation simulation */
+.handwritten {
+  font-family: 'Kalam', cursive;
+  letter-spacing: 0.02em;
+  line-height: 1.8;
+}
+
+.handwritten:nth-child(odd) {
+  transform: rotate(0.1deg);
+}
+
+.handwritten:nth-child(even) {
+  transform: rotate(-0.1deg);
+}
+
+/* Doodle decorations */
+.cornerDoodle {
+  position: absolute;
+  opacity: 0.1;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.cornerDoodle.topRight {
+  top: 8px;
+  right: 8px;
+  content: "✈️";
+}
+
+.cornerDoodle.bottomLeft {
+  bottom: 8px;
+  left: 8px;
+  content: "🗺️";
+}
+
+.editorCard:hover .cornerDoodle {
+  opacity: 0.2;
+}
