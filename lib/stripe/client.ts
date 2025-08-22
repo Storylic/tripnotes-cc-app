@@ -4,7 +4,7 @@
 import Stripe from 'stripe';
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-const STRIPE_API_VERSION = '2024-12-18.acacia' as const;
+const STRIPE_API_VERSION = '2025-07-30.basil' as const;
 
 if (!STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not set in environment variables');

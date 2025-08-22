@@ -68,17 +68,39 @@ export default async function PreviewPage({ params }: PreviewPageProps) {
         .where(inArray(gems.activityId, activityIds))
     : [];
 
-  // Organize data
+  // Organize data with proper type casting
   const tripData = {
     ...trip,
     creator,
     days: days.map(day => ({
       ...day,
+      tripId: trip.id,
       activities: allActivities
         .filter(a => a.dayId === day.id)
         .map(activity => ({
-          ...activity,
-          gems: allGems.filter(g => g.activityId === activity.id),
+          id: activity.id,
+          dayId: activity.dayId,
+          timeBlock: activity.timeBlock,
+          description: activity.description,
+          orderIndex: activity.orderIndex,
+          locationName: activity.locationName,
+          locationLat: activity.locationLat ? String(activity.locationLat) : null,
+          locationLng: activity.locationLng ? String(activity.locationLng) : null,
+          activityType: activity.activityType,
+          estimatedCost: activity.estimatedCost,
+          startTime: activity.startTime,
+          endTime: activity.endTime,
+          title: activity.title,
+          gems: allGems
+            .filter(g => g.activityId === activity.id)
+            .map(gem => ({
+              id: gem.id,
+              title: gem.title,
+              description: gem.description,
+              gemType: gem.gemType as 'hidden_gem' | 'tip' | 'warning',
+              insiderInfo: gem.insiderInfo,
+              metadata: gem.metadata,
+            })),
         })),
     })),
   };
