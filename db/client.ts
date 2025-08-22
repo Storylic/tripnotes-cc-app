@@ -17,10 +17,14 @@ if (!DATABASE_URL) {
   throw new Error('DATABASE_URL is not set in environment variables. Please check your .env.local file.');
 }
 
-// Create postgres connection
+// Parse the connection string to check if it's using pooler
+const isPooled = DATABASE_URL.includes('pooler.supabase.com') || DATABASE_URL.includes('6543');
+
+// Create postgres connection with appropriate settings
 const queryClient = postgres(DATABASE_URL, {
-  max: 1, // Use 1 for serverless environments
-  ssl: process.env.NODE_ENV === 'production' ? 'require' : false,
+  max: isPooled ? 10 : 1, // More connections if using pooler
+  ssl: process.env.NODE_ENV === 'production' ? 'require' : 'prefer',
+  prepare: false, // Required for pooled connections
 });
 
 // Create drizzle instance with schema

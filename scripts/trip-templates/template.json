@@ -1,0 +1,74 @@
+{
+  "trip": {
+    "title": "Trip Title",
+    "subtitle": "Duration • Season • Budget",
+    "description": "A compelling description of what makes this trip special",
+    "destination": "City, Country",
+    "durationDays": 2,
+    "priceCents": 1800,
+    "currency": "USD",
+    "season": "Spring",
+    "budgetRange": "$100-200/day",
+    "tripStyle": "Adventure",
+    "status": "draft",
+    "creatorEmail": "curator@tripnotes.cc"
+  },
+  "days": [
+    {
+      "dayNumber": 1,
+      "title": "Day 1 Title",
+      "subtitle": "Day 1 subtitle or theme",
+      "summary": "Optional summary of the day",
+      "activities": [
+        {
+          "timeBlock": "morning",
+          "description": "• First morning activity\n• Second morning activity",
+          "orderIndex": 1,
+          "locationName": "Optional Location Name",
+          "locationLat": null,
+          "locationLng": null,
+          "estimatedCost": "$50",
+          "gems": [
+            {
+              "gemType": "hidden_gem",
+              "title": "Gem Title",
+              "description": "Insider information about this place",
+              "insiderInfo": "Extra tip or direction"
+            }
+          ]
+        },
+        {
+          "timeBlock": "afternoon",
+          "description": "Afternoon activities description",
+          "orderIndex": 2,
+          "gems": []
+        },
+        {
+          "timeBlock": "evening",
+          "description": "Evening activities",
+          "orderIndex": 3,
+          "gems": []
+        }
+      ]
+    },
+    {
+      "dayNumber": 2,
+      "title": "Day 2 Title",
+      "subtitle": "Day 2 subtitle",
+      "activities": [
+        {
+          "timeBlock": "morning",
+          "description": "Day 2 morning activities",
+          "orderIndex": 1,
+          "gems": []
+        },
+        {
+          "timeBlock": "afternoon",
+          "description": "Day 2 afternoon activities",
+          "orderIndex": 2,
+          "gems": []
+        }
+      ]
+    }
+  ]
+}

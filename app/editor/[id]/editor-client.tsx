@@ -1,0 +1,516 @@
+// app/editor/[id]/editor-client.tsx
+// Client-side editor with debounced autosave; typed end-to-end (no `any`), no unused vars.
+
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { saveTrip } from './actions';
+import { formatDistanceToNow } from 'date-fns';
+
+interface TripData {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string | null;
+  destination: string;
+  durationDays: number;
+  priceCents: number;
+  status: string;
+  days: Array<{
+    id: string;
+    dayNumber: number;
+    title: string;
+    subtitle: string | null;
+    activities: Array<{
+      id: string;
+      dayId: string;
+      timeBlock: 'morning' | 'afternoon' | 'evening' | 'night' | 'all-day';
+      description: string;
+      orderIndex: number;
+      gems: Array<{
+        id: string;
+        title: string;
+        description: string;
+        gemType: string;
+      }>;
+    }>;
+  }>;
+}
+
+type DayData = TripData['days'][number];
+type ActivityData = DayData['activities'][number];
+type GemData = ActivityData['gems'][number];
+
+interface EditorClientProps {
+  initialData: TripData;
+}
+
+export default function EditorClient({ initialData }: EditorClientProps) {
+  const router = useRouter();
+  const [focusMode, setFocusMode] = useState(false);
+  const [aiPanelCollapsed] = useState(false); // no setter needed (prevents unused-var)
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+  const [lastSaved, setLastSaved] = useState<Date>(new Date());
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Local state for immediate UI updates
+  const [tripData, setTripData] = useState<TripData>(initialData);
+
+  // Auto-save functionality
+  const handleSave = useCallback(async () => {
+    setSaveStatus('saving');
+    try {
+      await saveTrip(tripData);
+      setSaveStatus('saved');
+      setLastSaved(new Date());
+
+      // After successful save, reload the page if any temp IDs exist
+      if (
+        tripData.days.some((d) => d.id.startsWith('temp-')) ||
+        tripData.days.some((d) => d.activities.some((a) => a.id.startsWith('temp-')))
+      ) {
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Save failed:', error);
+      setSaveStatus('error');
+    }
+  }, [tripData, router]);
+
+  // Debounced auto-save
+  const debouncedSave = useCallback(() => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      void handleSave();
+    }, 2000); // 2s delay
+  }, [handleSave]);
+
+  // Update trip data and trigger auto-save
+  const updateTrip = useCallback(
+    (updates: Partial<TripData>) => {
+      setTripData((prev) => ({ ...prev, ...updates }));
+      debouncedSave();
+    },
+    [debouncedSave]
+  );
+
+  const updateDay = useCallback(
+    (dayId: string, updates: Partial<DayData>) => {
+      setTripData((prev) => ({
+        ...prev,
+        days: prev.days.map((day) => (day.id === dayId ? { ...day, ...updates } : day)),
+      }));
+      debouncedSave();
+    },
+    [debouncedSave]
+  );
+
+  const addDay = useCallback(() => {
+    const newDay: DayData = {
+      id: `temp-${Date.now()}`,
+      dayNumber: tripData.days.length + 1,
+      title: `Day ${tripData.days.length + 1}`,
+      subtitle: null,
+      activities: [],
+    };
+    setTripData((prev) => ({
+      ...prev,
+      days: [...prev.days, newDay],
+    }));
+    debouncedSave();
+  }, [tripData.days.length, debouncedSave]);
+
+  return (
+    <div className="min-h-screen bg-[var(--color-paper)]">
+      {/* Header Bar */}
+      <div className="bg-white border-b border-[var(--color-pencil-gray)] px-6 py-3 sticky top-0 z-50 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <a href="/dashboard" className="font-serif text-lg text-[var(--color-stamp-red)]">
+              TripNotes CC
+            </a>
+            <div className="flex items-center gap-2 px-3 py-1 bg-[var(--color-paper)] rounded-full text-xs">
+              {saveStatus === 'saving' && (
+                <>
+                  <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                  <span>Saving...</span>
+                </>
+              )}
+              {saveStatus === 'saved' && (
+                <>
+                  <span className="w-2 h-2 bg-green-500 rounded-full" />
+                  <span>All changes saved</span>
+                </>
+              )}
+              {saveStatus === 'error' && (
+                <>
+                  <span className="w-2 h-2 bg-red-500 rounded-full" />
+                  <span>Save failed</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button className="px-4 py-2 text-sm border border-[var(--color-pencil-gray)] rounded hover:bg-gray-50">
+              Save Draft
+            </button>
+            <button className="px-4 py-2 text-sm border border-[var(--color-pencil-gray)] rounded hover:bg-gray-50">
+              Preview
+            </button>
+            <button
+              onClick={() => setFocusMode((v) => !v)}
+              className="px-4 py-2 text-sm border border-[var(--color-ai-purple)] text-[var(--color-ai-purple)] rounded hover:bg-purple-50"
+            >
+              {focusMode ? '👁 Show AI' : '✨ AI Assist'}
+            </button>
+            <button className="px-4 py-2 text-sm bg-[var(--color-ink)] text-white rounded hover:opacity-90">
+              Publish Trip
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex max-w-[1400px] mx-auto">
+        {/* Editor Panel */}
+        <div className={`flex-1 ${focusMode ? 'w-full' : ''}`}>
+          <div className="bg-white m-6 rounded border border-[var(--color-pencil-gray)] shadow-sm">
+            {/* Trip Header */}
+            <div className="p-6 border-b border-[var(--color-pencil-gray)]">
+              <input
+                type="text"
+                value={tripData.title}
+                onChange={(e) => updateTrip({ title: e.target.value })}
+                className="w-full text-3xl font-serif text-[var(--color-ink)] bg-transparent border-none outline-none focus:bg-[var(--color-highlighter)]/10 px-2 -mx-2"
+                placeholder="Trip Title"
+              />
+              <input
+                type="text"
+                value={tripData.subtitle}
+                onChange={(e) => updateTrip({ subtitle: e.target.value })}
+                className="w-full text-base text-gray-600 bg-transparent border-none outline-none mt-2 focus:bg-[var(--color-highlighter)]/10 px-2 -mx-2"
+                placeholder="Duration • Season • Budget"
+              />
+              <textarea
+                value={tripData.description || ''}
+                onChange={(e) => updateTrip({ description: e.target.value })}
+                className="w-full text-base text-gray-700 bg-transparent border-none outline-none mt-4 focus:bg-[var(--color-highlighter)]/10 px-2 -mx-2 resize-none min-h-[80px]"
+                placeholder="Describe your trip - what makes it special, who it's for, what travelers will experience..."
+              />
+            </div>
+
+            {/* Trip Essentials */}
+            <div className="p-6 bg-[var(--color-paper)] border-b border-[var(--color-pencil-gray)]">
+              <h3 className="text-sm font-semibold text-[var(--color-stamp-red)] tracking-wider mb-4">
+                TRIP ESSENTIALS
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Destination</label>
+                  <input
+                    type="text"
+                    value={tripData.destination}
+                    onChange={(e) => updateTrip({ destination: e.target.value })}
+                    className="w-full px-2 py-1 text-sm border border-[var(--color-pencil-gray)] rounded focus:border-[var(--color-stamp-red)] outline-none"
+                    placeholder="City, Country"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Duration</label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={tripData.durationDays}
+                      onChange={(e) => updateTrip({ durationDays: parseInt(e.target.value, 10) || 1 })}
+                      className="w-16 px-2 py-1 text-sm border border-[var(--color-pencil-gray)] rounded focus:border-[var(--color-stamp-red)] outline-none"
+                      min={1}
+                      max={30}
+                    />
+                    <span className="text-sm text-gray-600">days</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Price</label>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-gray-600">$</span>
+                    <input
+                      type="number"
+                      value={(tripData.priceCents / 100).toFixed(0)}
+                      onChange={(e) =>
+                        updateTrip({ priceCents: (parseInt(e.target.value, 10) || 0) * 100 })
+                      }
+                      className="w-20 px-2 py-1 text-sm border border-[var(--color-pencil-gray)] rounded focus:border-[var(--color-stamp-red)] outline-none"
+                      min={5}
+                      max={200}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Status</label>
+                  <select
+                    value={tripData.status}
+                    onChange={(e) => updateTrip({ status: e.target.value })}
+                    className="w-full px-2 py-1 text-sm border border-[var(--color-pencil-gray)] rounded focus:border-[var(--color-stamp-red)] outline-none"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Days */}
+            {tripData.days.map((day) => (
+              <DayEditor key={day.id} day={day} onUpdate={(updates) => updateDay(day.id, updates)} />
+            ))}
+
+            {/* Add Day Button */}
+            <div className="p-6 border-t border-dashed border-[var(--color-pencil-gray)] flex justify-center">
+              <button
+                onClick={addDay}
+                className="px-6 py-3 border border-dashed border-[var(--color-pencil-gray)] rounded hover:border-[var(--color-stamp-red)] hover:bg-red-50/50 text-gray-600 hover:text-[var(--color-stamp-red)] transition-colors"
+              >
+                + Add Day
+              </button>
+            </div>
+
+            {/* Stats Bar */}
+            <div className="px-6 py-3 bg-[var(--color-paper)] border-t border-[var(--color-pencil-gray)] flex gap-6 text-xs text-gray-600">
+              <div>
+                Days:{' '}
+                <span className="font-mono font-semibold text-[var(--color-ink)]">
+                  {tripData.days.length}
+                </span>
+              </div>
+              <div>
+                Price:{' '}
+                <span className="font-mono font-semibold text-[var(--color-ink)]">
+                  ${(tripData.priceCents / 100).toFixed(0)}
+                </span>
+              </div>
+              <div>
+                Status:{' '}
+                <span className="font-semibold text-[var(--color-ink)]">{tripData.status}</span>
+              </div>
+              <div className="ml-auto">
+                Last saved {formatDistanceToNow(lastSaved, { addSuffix: true })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* AI Panel */}
+        {!focusMode && (
+          <div className="w-80 p-6 space-y-4">
+            <AIPanel collapsed={aiPanelCollapsed} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Day Editor Component
+function DayEditor({
+  day,
+  onUpdate,
+}: {
+  day: DayData;
+  onUpdate: (updates: Partial<DayData>) => void;
+}) {
+  const [expanded, setExpanded] = useState(true);
+
+  const addActivity = () => {
+    const newActivity: ActivityData = {
+      id: `temp-${Date.now()}`,
+      dayId: day.id,
+      timeBlock: 'morning',
+      description: '',
+      orderIndex: (day.activities?.length || 0) + 1,
+      gems: [],
+    };
+    onUpdate({
+      activities: [...(day.activities || []), newActivity],
+    });
+  };
+
+  const updateActivity = (activityId: string, updates: Partial<ActivityData>) => {
+    onUpdate({
+      activities: day.activities.map((a) => (a.id === activityId ? { ...a, ...updates } : a)),
+    });
+  };
+
+  return (
+    <div className="border-b border-[var(--color-pencil-gray)]">
+      <div
+        className="p-4 bg-[var(--color-paper)] flex items-center justify-between cursor-pointer hover:bg-[var(--color-paper)]/50"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <div className="flex items-center gap-3">
+          <span className="w-8 h-8 bg-[var(--color-stamp-red)] text-white rounded flex items-center justify-center font-semibold text-sm">
+            {day.dayNumber}
+          </span>
+          <input
+            type="text"
+            value={day.title}
+            onChange={(e) => {
+              e.stopPropagation();
+              onUpdate({ title: e.target.value });
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="text-base font-semibold bg-transparent border-none outline-none"
+            placeholder="Day Title"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="w-7 h-7 border border-[var(--color-pencil-gray)] bg-white rounded hover:bg-gray-50 text-xs">
+            📷
+          </button>
+          <button className="w-7 h-7 border border-[var(--color-pencil-gray)] bg-white rounded hover:bg-gray-50 text-xs">
+            📍
+          </button>
+          <button className="w-7 h-7 border border-[var(--color-pencil-gray)] bg-white rounded hover:bg-gray-50 text-xs">
+            ⋮
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="p-6">
+          {/* Activities */}
+          <div className="space-y-6">
+            {day.activities?.map((activity) => (
+              <ActivityEditor
+                key={activity.id}
+                activity={activity}
+                onUpdate={(updates) => updateActivity(activity.id, updates)}
+              />
+            ))}
+
+            {(!day.activities || day.activities.length === 0) && (
+              <div className="text-center py-8 text-gray-400">
+                <p className="mb-4">No activities yet</p>
+                <button
+                  onClick={addActivity}
+                  className="px-4 py-2 border border-dashed border-[var(--color-pencil-gray)] rounded hover:border-[var(--color-stamp-red)] hover:text-[var(--color-stamp-red)]"
+                >
+                  Add First Activity
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Add element buttons */}
+          {day.activities?.length > 0 && (
+            <div className="flex gap-2 mt-6 pt-6 border-t border-dashed border-[var(--color-pencil-gray)]">
+              <button
+                onClick={addActivity}
+                className="px-3 py-1.5 text-xs border border-dashed border-[var(--color-pencil-gray)] rounded hover:border-[var(--color-stamp-red)] hover:text-[var(--color-stamp-red)]"
+              >
+                + Time block
+              </button>
+              <button className="px-3 py-1.5 text-xs border border-dashed border-[var(--color-pencil-gray)] rounded hover:border-[var(--color-stamp-red)] hover:text-[var(--color-stamp-red)]">
+                + Hidden gem
+              </button>
+              <button className="px-3 py-1.5 text-xs border border-dashed border-[var(--color-pencil-gray)] rounded hover:border-[var(--color-stamp-red)] hover:text-[var(--color-stamp-red)]">
+                + Photo spot
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Activity Editor Component
+function ActivityEditor({
+  activity,
+  onUpdate,
+}: {
+  activity: ActivityData;
+  onUpdate: (updates: Partial<ActivityData>) => void;
+}) {
+  const [autoResize, setAutoResize] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current && autoResize) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [activity.description, autoResize]);
+
+  return (
+    <div className="p-4 bg-[var(--color-paper)] rounded">
+      <select
+        value={activity.timeBlock}
+        onChange={(e) => onUpdate({ timeBlock: e.target.value as ActivityData['timeBlock'] })}
+        className="text-xs font-semibold tracking-wider text-[var(--color-stamp-red)] bg-transparent border-none outline-none mb-2 cursor-pointer"
+      >
+        <option value="morning">MORNING</option>
+        <option value="afternoon">AFTERNOON</option>
+        <option value="evening">EVENING</option>
+        <option value="night">NIGHT</option>
+        <option value="all-day">ALL DAY</option>
+      </select>
+      <textarea
+        ref={textareaRef}
+        value={activity.description}
+        onChange={(e) => {
+          onUpdate({ description: e.target.value });
+          setAutoResize(true);
+        }}
+        className="w-full bg-transparent border-none outline-none resize-none min-h-[60px]"
+        placeholder="Add activities for this time block..."
+      />
+
+      {/* Gems */}
+      {activity.gems?.map((gem: GemData) => (
+        <div
+          key={gem.id}
+          className="mt-4 pl-4 border-l-3 border-[var(--color-stamp-red)] bg-gradient-to-r from-[var(--color-highlighter)]/20 to-transparent p-3"
+        >
+          <div className="text-xs text-[var(--color-stamp-red)] font-semibold mb-1">HIDDEN GEM</div>
+          <div className="font-semibold text-[var(--color-stamp-red)]">{gem.title}</div>
+          <div className="text-sm mt-1">{gem.description}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// AI Panel Component
+function AIPanel({ collapsed }: { collapsed: boolean }) {
+  return (
+    <div className="bg-white rounded border border-[var(--color-pencil-gray)] shadow-sm overflow-hidden">
+      <div className="p-3 bg-[var(--color-paper)] border-b border-[var(--color-pencil-gray)] flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <span className="w-4 h-4 bg-[var(--color-ai-purple)] text-white rounded text-[10px] flex items-center justify-center">
+            ✨
+          </span>
+          <span>AI Suggestions</span>
+        </div>
+        <span className="text-xs">{collapsed ? '▲' : '▼'}</span>
+      </div>
+      {!collapsed && (
+        <div className="p-4 text-sm space-y-3">
+          <div className="p-2 bg-[var(--color-paper)] rounded cursor-pointer hover:bg-purple-50 hover:border-l-2 hover:border-[var(--color-ai-purple)] transition-all">
+            Add TeamLab Borderless closing info
+          </div>
+          <div className="p-2 bg-[var(--color-paper)] rounded cursor-pointer hover:bg-purple-50 hover:border-l-2 hover:border-[var(--color-ai-purple)] transition-all">
+            Include JR Pass cost comparison
+          </div>
+          <div className="p-2 bg-[var(--color-paper)] rounded cursor-pointer hover:bg-purple-50 hover:border-l-2 hover:border-[var(--color-ai-purple)] transition-all">
+            Add vegetarian options
+          </div>
+          <button className="w-full py-2 text-xs bg-white border border-[var(--color-ai-purple)] text-[var(--color-ai-purple)] rounded hover:bg-purple-50">
+            Generate More
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

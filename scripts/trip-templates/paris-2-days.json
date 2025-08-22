@@ -1,0 +1,144 @@
+{
+  "trip": {
+    "title": "Paris: The Perfect Weekend",
+    "subtitle": "2 Days • Spring/Summer • €150-250/day",
+    "description": "Experience the magic of Paris in just 48 hours. This carefully crafted itinerary hits the iconic landmarks while revealing the hidden corners that make Paris truly special. Perfect for first-time visitors or those returning for a romantic weekend.",
+    "destination": "Paris, France",
+    "durationDays": 2,
+    "priceCents": 2500,
+    "currency": "USD",
+    "season": "Spring/Summer",
+    "budgetRange": "€150-250/day",
+    "tripStyle": "Cultural & Romantic",
+    "status": "published",
+    "creatorEmail": "test@tripnotes.cc"
+  },
+  "days": [
+    {
+      "dayNumber": 1,
+      "title": "Icons & Left Bank Charm",
+      "subtitle": "From the Eiffel Tower to Saint-Germain cafés",
+      "summary": "Start with Paris's most famous landmark early, then dive into the intellectual heart of the Left Bank",
+      "activities": [
+        {
+          "timeBlock": "morning",
+          "description": "• 7:30am: Start at Trocadéro for sunrise Eiffel Tower photos (no crowds!)\n• 8:30am: Breakfast at Café de l'Homme (terrace view of tower)\n• 10am: Eiffel Tower visit - book skip-the-line tickets for 2nd floor",
+          "orderIndex": 1,
+          "locationName": "Eiffel Tower & Trocadéro",
+          "locationLat": "48.8584",
+          "locationLng": "2.2945",
+          "estimatedCost": "€30-60",
+          "gems": [
+            {
+              "gemType": "hidden_gem",
+              "title": "Secret Eiffel View",
+              "description": "Skip the Trocadéro crowds. Walk down to Port Debilly (the small port on the Seine) for the most romantic tower photos with boats in foreground.",
+              "insiderInfo": "Best at golden hour - 30 min before sunset"
+            },
+            {
+              "gemType": "tip",
+              "title": "Tower Ticket Hack",
+              "description": "Book stairs + elevator combo ticket. Climb to 2nd floor (€10.70), then elevator to summit (€6.60 extra). Saves €10 and skips elevator queue!",
+              "insiderInfo": "Only works if you're reasonably fit - it's 674 steps"
+            }
+          ]
+        },
+        {
+          "timeBlock": "afternoon",
+          "description": "• Metro to Saint-Germain-des-Prés\n• Lunch at L'Avant Comptoir (standing tapas bar, no reservations)\n• Browse Shakespeare & Company bookstore\n• Stroll through Luxembourg Gardens\n• 4pm: Musée Rodin (gardens alone worth the €10)",
+          "orderIndex": 2,
+          "locationName": "Saint-Germain-des-Prés",
+          "locationLat": "48.8534",
+          "locationLng": "2.3340",
+          "estimatedCost": "€40-60",
+          "gems": [
+            {
+              "gemType": "hidden_gem",
+              "title": "L'Avant Comptoir Secret",
+              "description": "This tiny standing-room tapas bar has no sign, just look for the crowd at 3 Carrefour de l'Odéon. Order the Jambon Ibérique and duck confit croquettes. Wine is €4/glass!",
+              "insiderInfo": "Go at 2pm or after 4pm to avoid lunch rush"
+            }
+          ]
+        },
+        {
+          "timeBlock": "evening",
+          "description": "• 7pm: Seine river walk from Pont Neuf to Notre-Dame\n• 8:30pm: Dinner at Les Papilles (wine shop + bistro, one menu, always perfect)\n• 10:30pm: Eiffel Tower sparkle show (every hour on the hour until 1am)",
+          "orderIndex": 3,
+          "locationName": "Latin Quarter",
+          "estimatedCost": "€50-80",
+          "gems": [
+            {
+              "gemType": "hidden_gem",
+              "title": "Les Papilles",
+              "description": "This wine shop/bistro serves one menu that changes daily - no choices, just trust them. €38 for 4 courses. The catch? It's always incredible and you can buy any bottle off the shelf at retail price.",
+              "insiderInfo": "30 Rue Gay-Lussac. Book ahead: +33 1 43 25 20 79"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dayNumber": 2,
+      "title": "Montmartre Magic & Marais Wandering",
+      "subtitle": "Artists' quarters and hidden courtyards",
+      "summary": "Explore the village feel of Montmartre, then get lost in the Marais maze",
+      "activities": [
+        {
+          "timeBlock": "morning",
+          "description": "• 8:30am: Métro to Abbesses (keep your ticket for the prettiest station!)\n• 9am: Sacré-Cœur before the crowds\n• 10am: Get lost in Montmartre backstreets\n• 11am: Coffee at La Consulat (Van Gogh's old haunt)",
+          "orderIndex": 1,
+          "locationName": "Montmartre",
+          "locationLat": "48.8867",
+          "locationLng": "2.3431",
+          "estimatedCost": "€20-30",
+          "gems": [
+            {
+              "gemType": "hidden_gem",
+              "title": "La Maison Rose Alternative",
+              "description": "Everyone Instagrams La Maison Rose. Instead, find Square Marcel Bleustein - a hidden garden with the same pink houses but zero tourists. Enter through a tiny gate at 92 Rue des Saules.",
+              "insiderInfo": "The square closes at sunset"
+            },
+            {
+              "gemType": "tip",
+              "title": "Sacré-Cœur Secret Entrance",
+              "description": "Skip the main stairs. Take the funicular (use a metro ticket) or better yet, enter through Square Louise Michel's side garden path - prettier and less crowded.",
+              "insiderInfo": "Funicular is included in your metro ticket"
+            }
+          ]
+        },
+        {
+          "timeBlock": "afternoon",
+          "description": "• Métro to Le Marais\n• Lunch at L'As du Fallafel (Sunday-Thursday only)\n• Explore Place des Vosges (Paris's oldest square)\n• Get lost in the Jewish quarter\n• 4pm: Musée Carnavalet (Paris history museum - FREE!)",
+          "orderIndex": 2,
+          "locationName": "Le Marais",
+          "locationLat": "48.8566",
+          "locationLng": "2.3522",
+          "estimatedCost": "€30-40",
+          "gems": [
+            {
+              "gemType": "hidden_gem",
+              "title": "Village Saint-Paul",
+              "description": "Hidden network of courtyards filled with antique shops and cafés. Enter through any passage marked 'Village Saint-Paul' between Rue Saint-Paul and Rue Charlemagne. Feels like a secret medieval village.",
+              "insiderInfo": "Most shops closed Mondays"
+            }
+          ]
+        },
+        {
+          "timeBlock": "evening",
+          "description": "• 6pm: Aperitif at Le Mary Celeste (oysters + cocktails)\n• 8pm: Dinner at Breizh Café (modern crêperie, need reservation)\n• 10pm: Night stroll along the illuminated Seine\n• 11pm: Late-night wine at La Belle Hortense (wine bar + bookstore)",
+          "orderIndex": 3,
+          "locationName": "Upper Marais",
+          "estimatedCost": "€60-90",
+          "gems": [
+            {
+              "gemType": "tip",
+              "title": "Breizh Café Ordering Secret",
+              "description": "This isn't your tourist crêperie. Order the 'Complète' with Bordier butter (€14) and a bottle of artisanal cider. Save room for the salted caramel dessert crêpe.",
+              "insiderInfo": "109 Rue Vieille du Temple. Book at breizh-cafe.com"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

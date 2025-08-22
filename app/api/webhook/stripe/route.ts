@@ -74,7 +74,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
   const { 
     id: paymentIntentId,
     amount,
-    currency,
+    // currency, // Uncomment when needed
     metadata,
     latest_charge,
   } = paymentIntent;
@@ -187,9 +187,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const {
     payment_intent,
     customer,
-    metadata,
+    // metadata, // Uncomment when needed
     amount_total,
-    currency,
+    // currency, // Uncomment when needed
   } = session;
 
   console.log('Checkout session completed:', {
