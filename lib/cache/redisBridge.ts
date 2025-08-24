@@ -1,19 +1,10 @@
 // lib/cache/redisBridge.ts
 // Redis HTTP bridge client for TripNotes caching
 
-import { Agent as UndiciAgent, request } from "undici";
-
+// Use native fetch instead of undici for Next.js compatibility
 type SetPayload = { key: string; value: string; ttl_seconds?: number };
 type GetResponse = { key: string; value: string | null };
 type HealthResponse = { status: string; redis: "up" | "down" };
-
-// Reuse agent for connection pooling
-const agent = new UndiciAgent({
-  keepAliveTimeout: 30_000,
-  keepAliveMaxTimeout: 60_000,
-  connections: 128,
-  pipelining: 1,
-});
 
 // Environment validation
 export function getRedisEnv() {
@@ -37,58 +28,69 @@ export function getRedisEnv() {
   return env;
 }
 
-function headers() {
+function getHeaders(): Record<string, string> {
   const env = getRedisEnv();
-  return {
+  const headers: Record<string, string> = {
     "content-type": "application/json",
-    "CF-Access-Client-Id": env.CF_ACCESS_CLIENT_ID,
-    "CF-Access-Client-Secret": env.CF_ACCESS_CLIENT_SECRET,
-    ...(env.API_KEY ? { "X-API-Key": env.API_KEY } : {}),
-  } as const;
+    "CF-Access-Client-Id": env.CF_ACCESS_CLIENT_ID!,
+    "CF-Access-Client-Secret": env.CF_ACCESS_CLIENT_SECRET!,
+  };
+  
+  if (env.API_KEY) {
+    headers["X-API-Key"] = env.API_KEY;
+  }
+  
+  return headers;
 }
 
 export async function health(): Promise<HealthResponse> {
   const { REDIS_BRIDGE_BASE } = getRedisEnv();
-  const { body, statusCode } = await request(`${REDIS_BRIDGE_BASE}/health`, {
+  
+  const response = await fetch(`${REDIS_BRIDGE_BASE}/health`, {
     method: "GET",
-    dispatcher: agent,
-    headers: headers(),
+    headers: getHeaders(),
   });
-  if (statusCode !== 200) {
-    const text = await body.text();
-    throw new Error(`Health check failed with status ${statusCode}: ${text}`);
+  
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Health check failed with status ${response.status}: ${text}`);
   }
-  const data = (await body.json()) as HealthResponse;
+  
+  const data = await response.json() as HealthResponse;
   return data;
 }
 
 export async function setKV(payload: SetPayload): Promise<{ ok: boolean }> {
   const { REDIS_BRIDGE_BASE } = getRedisEnv();
-  const { body, statusCode } = await request(`${REDIS_BRIDGE_BASE}/set`, {
+  
+  const response = await fetch(`${REDIS_BRIDGE_BASE}/set`, {
     method: "POST",
-    dispatcher: agent,
-    headers: headers(),
+    headers: getHeaders(),
     body: JSON.stringify(payload),
   });
-  if (statusCode !== 200) {
-    const text = await body.text();
-    throw new Error(`Set failed with status ${statusCode}: ${text}`);
+  
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Set failed with status ${response.status}: ${text}`);
   }
-  const data = (await body.json()) as { ok: boolean };
+  
+  const data = await response.json() as { ok: boolean };
   return data;
 }
 
 export async function getKV(key: string): Promise<GetResponse> {
   const { REDIS_BRIDGE_BASE } = getRedisEnv();
-  const { body, statusCode } = await request(`${REDIS_BRIDGE_BASE}/get/${encodeURIComponent(key)}`, {
+  
+  const response = await fetch(`${REDIS_BRIDGE_BASE}/get/${encodeURIComponent(key)}`, {
     method: "GET",
-    dispatcher: agent,
-    headers: headers(),
+    headers: getHeaders(),
   });
-  if (statusCode !== 200) {
-    const text = await body.text();
-    throw new Error(`Get failed with status ${statusCode}: ${text}`);
+  
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Get failed with status ${response.status}: ${text}`);
   }
-  const data = (await body.json()) as GetResponse;
+  
+  const data = await response.json() as GetResponse;
   return data;
 }

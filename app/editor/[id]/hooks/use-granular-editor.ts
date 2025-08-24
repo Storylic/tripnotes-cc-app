@@ -3,6 +3,8 @@
 
 import { useState, useCallback, useRef } from 'react';
 import type { TripData, TripDay, Activity } from '../lib/types';
+
+// Import server actions (these are safe to import in client components)
 import { saveGranularChanges, saveActivityOnly, saveDayMetadata } from '../actions-granular';
 
 interface ChangeTracker {

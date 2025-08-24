@@ -16,9 +16,9 @@ import AIPanel from './components/ai-panel';
 // Hooks
 import { useGranularEditor } from './hooks/use-granular-editor';
 
-// Actions
+// Server Actions
 import { publishTrip } from './actions';
-import { prefetchDay } from '@/lib/cache/trip-cache-service';
+import { prefetchDayAction } from './actions/cache-actions';
 
 // Types
 import type { TripData } from './lib/types';
@@ -119,10 +119,10 @@ export default function GranularEditorClient({ initialData }: EditorClientProps)
     router.push(`/preview/${tripData.id}`);
   };
 
-  // Prefetch on day hover
+  // Prefetch on day hover using server action
   const handleDayHover = useCallback((dayId: string) => {
-    // Prefetch this day's data in background
-    prefetchDay(dayId, tripData.id).catch(console.error);
+    // Call server action to prefetch day data in background
+    prefetchDayAction(dayId, tripData.id).catch(console.error);
   }, [tripData.id]);
 
   // Keyboard shortcuts
