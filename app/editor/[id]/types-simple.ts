@@ -1,5 +1,5 @@
-// app/editor/[id]/lib/types.ts
-// Type definitions for the trip editor
+// app/editor/[id]/types-simple.ts
+// Simplified type definitions for the editor
 
 export interface Gem {
   id: string;
@@ -7,7 +7,6 @@ export interface Gem {
   description: string;
   gemType: 'hidden_gem' | 'tip' | 'warning';
   insiderInfo?: string | null;
-  metadata?: unknown;
 }
 
 export interface Activity {
@@ -16,14 +15,6 @@ export interface Activity {
   timeBlock: string;
   description: string;
   orderIndex: number;
-  locationName?: string | null;
-  locationLat?: string | null;
-  locationLng?: string | null;
-  activityType?: string | null;
-  estimatedCost?: string | null;
-  startTime?: string | null;
-  endTime?: string | null;
-  title?: string | null;
   gems: Gem[];
 }
 
@@ -33,11 +24,10 @@ export interface TripDay {
   dayNumber: number;
   title: string;
   subtitle: string | null;
-  summary?: string | null;
   activities: Activity[];
 }
 
-export interface Trip {
+export interface TripData {
   id: string;
   creatorId: string;
   title: string;
@@ -55,18 +45,5 @@ export interface Trip {
   publishedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
-}
-
-export interface TripData extends Trip {
   days: TripDay[];
-}
-
-export type SaveStatus = 'saved' | 'saving' | 'error';
-
-export interface EditorAction {
-  type: 'UPDATE_TRIP' | 'ADD_DAY' | 'UPDATE_DAY' | 'DELETE_DAY' | 'REORDER_DAYS' |
-        'ADD_ACTIVITY' | 'UPDATE_ACTIVITY' | 'DELETE_ACTIVITY' | 'MOVE_ACTIVITY' |
-        'ADD_GEM' | 'UPDATE_GEM' | 'DELETE_GEM';
-  payload: Record<string, unknown>;
-  timestamp: Date;
 }

@@ -1,36 +1,39 @@
-// lib/cache/trip-loader.ts
-// Optimized single-query trip loader
+// lib/data/trip-loader-simple.ts
+// Simplified trip loader with single optimized query
 
 import { db } from '@/db/client';
 import { sql } from 'drizzle-orm';
-import type { TripData } from '@/app/editor/[id]/lib/types';
+import { getCachedTrip, cacheTrip } from '@/lib/cache/simple-cache';
+import type { TripData } from '@/app/editor/[id]/types-simple';
 
 /**
- * Load complete trip data with a single optimized query
- * Uses PostgreSQL's JSON aggregation for maximum performance
+ * Load trip data with caching
  */
-export async function loadTripDataOptimized(tripId: string): Promise<TripData | null> {
+export async function loadTrip(tripId: string, skipCache = false): Promise<TripData | null> {
+  // Try cache first (unless skipped)
+  if (!skipCache) {
+    const cached = await getCachedTrip(tripId);
+    if (cached) {
+      return cached;
+    }
+  }
+
+  // Load from database with single optimized query
   const startTime = performance.now();
   
   try {
-    // Single query using JSON aggregation
     const result = await db.execute(sql`
       WITH trip_data AS (
         SELECT 
           t.*,
-          u.name as creator_name,
-          u.email as creator_email,
           (
-            SELECT json_agg(
+            SELECT COALESCE(json_agg(
               json_build_object(
                 'id', td.id,
                 'tripId', td.trip_id,
                 'dayNumber', td.day_number,
                 'title', td.title,
                 'subtitle', td.subtitle,
-                'summary', td.summary,
-                'createdAt', td.created_at,
-                'updatedAt', td.updated_at,
                 'activities', (
                   SELECT COALESCE(json_agg(
                     json_build_object(
@@ -39,14 +42,6 @@ export async function loadTripDataOptimized(tripId: string): Promise<TripData | 
                       'timeBlock', a.time_block,
                       'description', a.description,
                       'orderIndex', a.order_index,
-                      'locationName', a.location_name,
-                      'locationLat', a.location_lat,
-                      'locationLng', a.location_lng,
-                      'activityType', a.activity_type,
-                      'estimatedCost', a.estimated_cost,
-                      'startTime', a.start_time,
-                      'endTime', a.end_time,
-                      'title', a.title,
                       'gems', (
                         SELECT COALESCE(json_agg(
                           json_build_object(
@@ -54,8 +49,7 @@ export async function loadTripDataOptimized(tripId: string): Promise<TripData | 
                             'title', g.title,
                             'description', g.description,
                             'gemType', g.gem_type,
-                            'insiderInfo', g.insider_info,
-                            'metadata', g.metadata
+                            'insiderInfo', g.insider_info
                           ) ORDER BY g.created_at
                         ), '[]'::json)
                         FROM gems g
@@ -67,31 +61,26 @@ export async function loadTripDataOptimized(tripId: string): Promise<TripData | 
                   WHERE a.day_id = td.id
                 )
               ) ORDER BY td.day_number
-            )
-          ) as days
+            ), '[]'::json) as days
+          FROM trip_days td
+          WHERE td.trip_id = t.id
+        )
         FROM trips t
-        LEFT JOIN users u ON u.id = t.creator_id
-        LEFT JOIN trip_days td ON td.trip_id = t.id
         WHERE t.id = ${tripId}
-        GROUP BY t.id, u.id, u.name, u.email
       )
       SELECT * FROM trip_data
     `);
 
     const elapsed = performance.now() - startTime;
-    console.log(`[DB Query] Trip ${tripId} loaded in ${elapsed.toFixed(2)}ms`);
+    console.log(`[DB] Trip ${tripId} loaded in ${elapsed.toFixed(2)}ms`);
 
     if (!result || result.length === 0) {
-      console.log(`[DB Query] Trip ${tripId} not found`);
       return null;
     }
 
     const row = result[0] as any;
     
-    // Transform the result to match TripData type
-    // Ensure days is always an array, even if null from DB
-    const days = row.days || [];
-    
+    // Transform to TripData type
     const tripData: TripData = {
       id: row.id,
       creatorId: row.creator_id,
@@ -110,29 +99,25 @@ export async function loadTripDataOptimized(tripId: string): Promise<TripData | 
       publishedAt: row.published_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      days: Array.isArray(days) ? days : [],
+      days: Array.isArray(row.days) ? row.days : [],
     };
 
-    // Add creator info if needed (optional)
-    if (row.creator_name) {
-      (tripData as any).creator = {
-        id: row.creator_id,
-        name: row.creator_name,
-        email: row.creator_email,
-      };
+    // Cache for next time
+    if (!skipCache) {
+      await cacheTrip(tripId, tripData);
     }
 
     return tripData;
   } catch (error) {
-    console.error('[DB Query] Error loading trip:', error);
-    throw error;
+    console.error('[DB] Error loading trip:', error);
+    return null;
   }
 }
 
 /**
- * Load multiple trips efficiently (for dashboard)
+ * Load trips for dashboard (lightweight)
  */
-export async function loadTripsForUser(userId: string): Promise<any[]> {
+export async function loadDashboardTrips(userId: string) {
   const startTime = performance.now();
   
   try {
@@ -146,10 +131,10 @@ export async function loadTripsForUser(userId: string): Promise<any[]> {
         t.price_cents,
         t.status,
         t.cover_image_url,
-        t.created_at,
         t.updated_at,
         (SELECT COUNT(*) FROM trip_days WHERE trip_id = t.id) as day_count,
-        (SELECT COUNT(*) FROM activities a 
+        (SELECT COUNT(*) 
+         FROM activities a 
          JOIN trip_days td ON a.day_id = td.id 
          WHERE td.trip_id = t.id) as activity_count
       FROM trips t
@@ -158,11 +143,11 @@ export async function loadTripsForUser(userId: string): Promise<any[]> {
     `);
 
     const elapsed = performance.now() - startTime;
-    console.log(`[DB Query] User trips loaded in ${elapsed.toFixed(2)}ms`);
+    console.log(`[DB] Dashboard loaded in ${elapsed.toFixed(2)}ms`);
 
     return result as any[];
   } catch (error) {
-    console.error('[DB Query] Error loading user trips:', error);
-    throw error;
+    console.error('[DB] Error loading dashboard:', error);
+    return [];
   }
 }

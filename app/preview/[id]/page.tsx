@@ -1,9 +1,9 @@
 // app/preview/[id]/page.tsx
-// Preview page with fixed performance logging
+// Simplified preview page
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { getTripDataFast } from '@/lib/cache/trip-cache-service';
+import { loadTrip } from '@/lib/data/trip-loader-simple';
 import TripViewer from './trip-viewer';
 
 interface PreviewPageProps {
@@ -17,13 +17,8 @@ export default async function PreviewPage({ params }: PreviewPageProps) {
   // Check if user is authenticated
   const { data: { user } } = await supabase.auth.getUser();
   
-  // Load trip with caching - Use performance.now() instead of console.time
-  const loadStart = performance.now();
-  const tripData = await getTripDataFast(id);
-  const loadTime = performance.now() - loadStart;
-  
-  // Log with timestamp to avoid conflicts
-  console.log(`[Preview] Trip ${id} loaded in ${loadTime.toFixed(2)}ms at ${new Date().toISOString()}`);
+  // Load trip data
+  const tripData = await loadTrip(id);
 
   if (!tripData) {
     redirect('/');

@@ -1,14 +1,11 @@
 // app/dashboard/page.tsx
-// Dashboard using granular metadata loading for speed
+// Simplified dashboard
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { db } from '@/db/client';
-import { trips } from '@/db/schema';
-import { eq } from 'drizzle-orm';
-import { getTripMetadataBatch } from '@/lib/cache/trip-cache-service';
+import { loadDashboardTrips } from '@/lib/data/trip-loader-simple';
+import { getCachedDashboard, cacheDashboard } from '@/lib/cache/simple-cache';
 import Link from 'next/link';
-import TripCard from './components/trip-card';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -19,23 +16,18 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  // First, get list of trip IDs from DB (lightweight query)
-  const userTripIds = await db
-    .select({ id: trips.id, status: trips.status })
-    .from(trips)
-    .where(eq(trips.creatorId, user.id))
-    .orderBy(trips.updatedAt);
-
-  // Then batch-load metadata from cache (super fast)
-  const tripIds = userTripIds.map(t => t.id);
-  const metadataMap = await getTripMetadataBatch(tripIds);
+  // Try cache first
+  let userTrips = await getCachedDashboard(user.id);
   
-  // Combine with status info
-  const userTrips = userTripIds.map(t => ({
-    ...metadataMap.get(t.id),
-    id: t.id,
-    status: t.status,
-  })).filter(t => t.title); // Filter out any failed loads
+  if (!userTrips) {
+    // Load from database
+    userTrips = await loadDashboardTrips(user.id);
+    
+    // Cache for next time
+    if (userTrips.length > 0) {
+      await cacheDashboard(user.id, userTrips);
+    }
+  }
 
   const draftTrips = userTrips.filter(t => t.status === 'draft');
   const publishedTrips = userTrips.filter(t => t.status === 'published');
@@ -56,7 +48,7 @@ export default async function DashboardPage() {
             </div>
             <Link 
               href="/editor/new"
-              className="px-6 py-3 bg-[var(--color-ink)] text-white rounded hover:opacity-90 transition-opacity"
+              className="px-6 py-3 bg-[var(--color-ink)] text-white rounded hover:opacity-90"
             >
               Create New Trip
             </Link>
@@ -66,7 +58,7 @@ export default async function DashboardPage() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-4 mb-8">
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
           <div className="bg-white p-4 rounded border border-[var(--color-pencil-gray)]">
             <div className="text-sm text-gray-600 mb-1">Total Trips</div>
             <div className="text-2xl font-bold text-[var(--color-ink)]">{userTrips.length}</div>
@@ -79,10 +71,6 @@ export default async function DashboardPage() {
             <div className="text-sm text-gray-600 mb-1">Drafts</div>
             <div className="text-2xl font-bold text-[var(--color-ink)]">{draftTrips.length}</div>
           </div>
-          <div className="bg-white p-4 rounded border border-[var(--color-pencil-gray)]">
-            <div className="text-sm text-gray-600 mb-1">Cache</div>
-            <div className="text-2xl font-mono text-green-600">✓ Fast</div>
-          </div>
         </div>
 
         {/* Draft Trips */}
@@ -91,7 +79,7 @@ export default async function DashboardPage() {
             <h2 className="font-serif text-xl text-[var(--color-ink)] mb-4">Draft Trips</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {draftTrips.map(trip => (
-                <TripCard key={trip.id} trip={trip as any} />
+                <TripCard key={trip.id} trip={trip} />
               ))}
             </div>
           </div>
@@ -103,7 +91,7 @@ export default async function DashboardPage() {
             <h2 className="font-serif text-xl text-[var(--color-ink)] mb-4">Published Trips</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {publishedTrips.map(trip => (
-                <TripCard key={trip.id} trip={trip as any} />
+                <TripCard key={trip.id} trip={trip} />
               ))}
             </div>
           </div>
@@ -127,6 +115,62 @@ export default async function DashboardPage() {
             </Link>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function TripCard({ trip }: { trip: any }) {
+  return (
+    <div className="bg-white rounded border border-[var(--color-pencil-gray)] overflow-hidden hover:shadow-md transition-shadow">
+      {trip.cover_image_url && (
+        <div className="h-32 bg-gray-200">
+          {/* Image would go here */}
+        </div>
+      )}
+      <div className="p-4">
+        <h3 className="font-serif text-lg text-[var(--color-ink)] mb-1">
+          {trip.title}
+        </h3>
+        <p className="text-sm text-gray-600 mb-3">
+          {trip.subtitle || `${trip.duration_days} days`}
+        </p>
+        <div className="flex items-center justify-between text-sm mb-3">
+          <span className="text-gray-500">
+            {trip.day_count || 0} days • {trip.activity_count || 0} activities
+          </span>
+          <span className="font-mono text-[var(--color-stamp-red)]">
+            ${(trip.price_cents / 100).toFixed(0)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500">
+            {trip.status === 'published' ? (
+              <span className="text-green-600">● Published</span>
+            ) : (
+              <span className="text-amber-600">● Draft</span>
+            )}
+          </span>
+          <span className="text-gray-400">
+            {new Date(trip.updated_at).toLocaleDateString()}
+          </span>
+        </div>
+        <div className="mt-4 flex gap-2">
+          <Link 
+            href={`/editor/${trip.id}`}
+            className="flex-1 px-3 py-2 text-center text-sm border border-[var(--color-ink)] text-[var(--color-ink)] rounded hover:bg-gray-50"
+          >
+            Edit
+          </Link>
+          {trip.status === 'published' && (
+            <Link 
+              href={`/trips/${trip.id}`}
+              className="flex-1 px-3 py-2 text-center text-sm bg-[var(--color-ink)] text-white rounded hover:opacity-90"
+            >
+              View
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,13 +1,12 @@
 // app/editor/[id]/page.tsx
-// Editor page using granular caching system
+// Simplified editor page
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { db } from '@/db/client';
 import { trips } from '@/db/schema';
-import { getTripDataFast } from '@/lib/cache/trip-cache-service'; // Uses granular cache internally
-import GranularEditorClient from './editor-client-granular';
-import type { TripData } from './lib/types';
+import { loadTrip } from '@/lib/data/trip-loader-simple';
+import SimplifiedEditorClient from './editor-client-simple';
 
 interface EditorPageProps {
   params: Promise<{ id: string }>;
@@ -25,7 +24,6 @@ export default async function EditorPage({ params }: EditorPageProps) {
 
   // Handle new trip creation
   if (id === 'new') {
-    // Create a new trip and redirect to its editor
     const [newTrip] = await db.insert(trips).values({
       creatorId: user.id,
       title: 'Untitled Trip',
@@ -41,12 +39,8 @@ export default async function EditorPage({ params }: EditorPageProps) {
     redirect(`/editor/${newTrip.id}`);
   }
 
-  // Load trip data using granular cache system
-  const loadStart = performance.now();
-  const tripData = await getTripDataFast(id); // This now uses granular caching
-  const loadTime = performance.now() - loadStart;
-  
-  console.log(`[Editor] Trip ${id} loaded in ${loadTime.toFixed(2)}ms`);
+  // Load trip data
+  const tripData = await loadTrip(id);
 
   if (!tripData) {
     redirect('/dashboard');
@@ -57,12 +51,10 @@ export default async function EditorPage({ params }: EditorPageProps) {
     redirect('/dashboard');
   }
 
-  // Ensure days array exists before passing to client
-  const sanitizedTripData: TripData = {
-    ...tripData,
-    days: Array.isArray(tripData.days) ? tripData.days : [],
-  };
+  // Ensure days array exists
+  if (!tripData.days) {
+    tripData.days = [];
+  }
 
-  // Use the granular editor client
-  return <GranularEditorClient initialData={sanitizedTripData} />;
+  return <SimplifiedEditorClient initialData={tripData} />;
 }
