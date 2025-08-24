@@ -1,5 +1,5 @@
-// app/editor/[id]/actions.ts
-// Server actions for saving trip data with cache invalidation
+// app/editor/[id]/actions-no-nav.ts
+// Server actions that don't cause navigation
 
 'use server';
 
@@ -7,7 +7,6 @@ import { db } from '@/db/client';
 import { trips, tripDays, activities, gems } from '@/db/schema';
 import { eq, inArray } from 'drizzle-orm';
 import { createClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
 import { TripCacheService, warmCacheAfterSave } from '@/lib/cache/trip-cache-service';
 
 interface SaveTripData {
@@ -39,7 +38,7 @@ interface SaveTripData {
   }>;
 }
 
-export async function saveTrip(tripData: SaveTripData) {
+export async function saveTripWithoutNavigation(tripData: SaveTripData) {
   const supabase = await createClient();
   
   // Verify authentication
@@ -62,6 +61,9 @@ export async function saveTrip(tripData: SaveTripData) {
   try {
     console.log('[Save] Starting save for trip:', tripData.id);
     const saveStart = performance.now();
+
+    // Store new IDs to return to client
+    const newIdMap: Record<string, string> = {};
 
     // 1. Update trip metadata
     await db
@@ -112,6 +114,7 @@ export async function saveTrip(tripData: SaveTripData) {
         }).returning();
         
         dayId = newDay.id;
+        newIdMap[day.id] = dayId; // Track the new ID
         console.log('[Save] Created new day:', dayId);
       } else {
         // Update existing day
@@ -160,6 +163,7 @@ export async function saveTrip(tripData: SaveTripData) {
           }).returning();
 
           activityId = newActivity.id;
+          newIdMap[activity.id] = activityId; // Track the new ID
           console.log('[Save] Created new activity:', activityId);
         } else {
           // Update existing activity
@@ -198,12 +202,14 @@ export async function saveTrip(tripData: SaveTripData) {
         for (const gem of activity.gems || []) {
           if (gem.id.startsWith('temp-')) {
             // Create new gem
-            await db.insert(gems).values({
+            const [newGem] = await db.insert(gems).values({
               activityId: activityId,
               gemType: gem.gemType as 'hidden_gem' | 'tip' | 'warning',
               title: gem.title,
               description: gem.description,
-            });
+            }).returning();
+            
+            newIdMap[gem.id] = newGem.id; // Track the new ID
             console.log('[Save] Created new gem');
           } else {
             // Update existing gem
@@ -223,101 +229,23 @@ export async function saveTrip(tripData: SaveTripData) {
     const saveElapsed = performance.now() - saveStart;
     console.log(`[Save] Database save completed in ${saveElapsed.toFixed(2)}ms`);
 
-    // CACHE INVALIDATION - This is the key addition
+    // CACHE INVALIDATION ONLY - No path revalidation
     console.log('[Cache] Invalidating cache for trip:', tripData.id);
     await TripCacheService.invalidate(tripData.id);
-    
-    // Also invalidate dashboard cache for this user
     await TripCacheService.invalidate(`dashboard:v2:${user.id}`);
     
-    // Warm cache with fresh data in background (non-blocking)
-    warmCacheAfterSave(tripData.id).catch(error => {
-      console.error('[Cache] Error warming cache:', error);
-    });
-
-    // DON'T revalidate paths - this might be causing the navigation
-    // Just return success and let the client handle the UI
+    // Warm cache in background
+    warmCacheAfterSave(tripData.id).catch(console.error);
     
-    console.log('[Save] Complete with cache invalidation');
-    return { success: true };
+    console.log('[Save] Complete - returning new IDs to client');
+    
+    // Return success with new ID mappings
+    return { 
+      success: true,
+      newIds: newIdMap // Client can use this to update temp IDs
+    };
   } catch (error) {
     console.error('[Save] Error:', error);
     throw error;
   }
-}
-
-export async function publishTrip(tripId: string) {
-  const supabase = await createClient();
-  
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const [trip] = await db
-    .select()
-    .from(trips)
-    .where(eq(trips.id, tripId))
-    .limit(1);
-
-  if (!trip || trip.creatorId !== user.id) {
-    throw new Error('Unauthorized');
-  }
-
-  await db
-    .update(trips)
-    .set({
-      status: 'published',
-      publishedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(trips.id, tripId));
-
-  // CACHE INVALIDATION
-  console.log('[Cache] Invalidating cache after publish:', tripId);
-  await TripCacheService.invalidate(tripId);
-  await TripCacheService.invalidate(`dashboard:v2:${user.id}`);
-  
-  // Warm cache with updated data
-  warmCacheAfterSave(tripId).catch(console.error);
-
-  // Revalidate all relevant paths
-  revalidatePath(`/editor/${tripId}`);
-  revalidatePath(`/preview/${tripId}`);
-  revalidatePath(`/trips/${tripId}`);
-  revalidatePath('/dashboard');
-  
-  return { success: true };
-}
-
-export async function deleteTrip(tripId: string) {
-  const supabase = await createClient();
-  
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const [trip] = await db
-    .select()
-    .from(trips)
-    .where(eq(trips.id, tripId))
-    .limit(1);
-
-  if (!trip || trip.creatorId !== user.id) {
-    throw new Error('Unauthorized');
-  }
-
-  await db
-    .delete(trips)
-    .where(eq(trips.id, tripId));
-
-  // CACHE INVALIDATION
-  console.log('[Cache] Invalidating cache after delete:', tripId);
-  await TripCacheService.invalidate(tripId);
-  await TripCacheService.invalidate(`dashboard:v2:${user.id}`);
-
-  revalidatePath('/dashboard');
-  
-  return { success: true };
 }

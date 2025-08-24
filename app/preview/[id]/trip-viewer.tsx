@@ -1,5 +1,5 @@
 // app/preview/[id]/trip-viewer.tsx
-// Client component for viewing trips with aligned time blocks
+// Client component for viewing trips with proper null handling
 
 'use client';
 
@@ -29,7 +29,13 @@ interface TripViewerProps {
 }
 
 export default function TripViewer({ trip, isOwner, hasPurchased, isPreview }: TripViewerProps) {
-  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set([trip.days[0]?.id]));
+  // Handle missing or empty days array
+  const tripDays = trip.days || [];
+  const firstDayId = tripDays.length > 0 ? tripDays[0].id : null;
+  
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(
+    firstDayId ? new Set([firstDayId]) : new Set()
+  );
 
   const toggleDay = (dayId: string) => {
     const newExpanded = new Set(expandedDays);
@@ -44,6 +50,16 @@ export default function TripViewer({ trip, isOwner, hasPurchased, isPreview }: T
   const formatPrice = (cents: number) => {
     return `$${(cents / 100).toFixed(0)}`;
   };
+
+  // Calculate stats safely
+  const totalActivities = tripDays.reduce((sum: number, d) => 
+    sum + (d.activities?.length || 0), 0
+  );
+  
+  const totalGems = tripDays.reduce((sum: number, d) => 
+    sum + (d.activities?.reduce((s: number, a) => 
+      s + (a.gems?.length || 0), 0) || 0), 0
+  );
 
   return (
     <div className="min-h-screen bg-[var(--color-paper)]">
@@ -89,7 +105,7 @@ export default function TripViewer({ trip, isOwner, hasPurchased, isPreview }: T
         <div className="absolute bottom-0 left-0 right-0 p-8">
           <div className="max-w-4xl mx-auto">
             <div className="text-white/90 text-sm mb-2">
-              {trip.destination} • {trip.durationDays} Days • {trip.season || 'All Seasons'}
+              {trip.destination || 'Destination'} • {trip.durationDays} Days • {trip.season || 'All Seasons'}
             </div>
             <h1 className="text-4xl md:text-5xl font-serif text-white mb-2">
               {trip.title}
@@ -197,103 +213,118 @@ export default function TripViewer({ trip, isOwner, hasPurchased, isPreview }: T
 
         {/* Day by Day Itinerary */}
         <div className="space-y-4">
-          <h2 className="font-serif text-2xl text-[var(--color-ink)] mb-4">Your {trip.durationDays}-Day Journey</h2>
+          <h2 className="font-serif text-2xl text-[var(--color-ink)] mb-4">
+            Your {trip.durationDays}-Day Journey
+          </h2>
           
-          {trip.days.map((day) => (
-            <div 
-              key={day.id}
-              className={`bg-white rounded border border-[var(--color-pencil-gray)] overflow-hidden transition-shadow ${
-                expandedDays.has(day.id) ? 'shadow-md' : ''
-              }`}
-            >
-              {/* Day Header */}
+          {tripDays.length === 0 ? (
+            <div className="bg-white rounded border border-[var(--color-pencil-gray)] p-8 text-center text-gray-500">
+              <p>No itinerary has been created yet.</p>
+              {isOwner && (
+                <Link 
+                  href={`/editor/${trip.id}`}
+                  className="inline-block mt-4 px-4 py-2 bg-[var(--color-ink)] text-white rounded hover:opacity-90"
+                >
+                  Add Days to Your Trip
+                </Link>
+              )}
+            </div>
+          ) : (
+            tripDays.map((day) => (
               <div 
-                className="p-4 bg-[var(--color-paper)] cursor-pointer hover:bg-[var(--color-paper)]/70 transition-colors"
-                onClick={() => toggleDay(day.id)}
+                key={day.id}
+                className={`bg-white rounded border border-[var(--color-pencil-gray)] overflow-hidden transition-shadow ${
+                  expandedDays.has(day.id) ? 'shadow-md' : ''
+                }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="w-10 h-10 bg-[var(--color-stamp-red)] text-white rounded flex items-center justify-center font-bold">
-                      {day.dayNumber}
-                    </span>
-                    <div>
-                      <h3 className="font-semibold text-lg">{day.title}</h3>
-                      {day.subtitle && (
-                        <p className="text-sm text-gray-600">{day.subtitle}</p>
-                      )}
+                {/* Day Header */}
+                <div 
+                  className="p-4 bg-[var(--color-paper)] cursor-pointer hover:bg-[var(--color-paper)]/70 transition-colors"
+                  onClick={() => toggleDay(day.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="w-10 h-10 bg-[var(--color-stamp-red)] text-white rounded flex items-center justify-center font-bold">
+                        {day.dayNumber}
+                      </span>
+                      <div>
+                        <h3 className="font-semibold text-lg">{day.title}</h3>
+                        {day.subtitle && (
+                          <p className="text-sm text-gray-600">{day.subtitle}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className={`transform transition-transform ${expandedDays.has(day.id) ? 'rotate-180' : ''}`}>
+                      ▼
                     </div>
                   </div>
-                  <div className={`transform transition-transform ${expandedDays.has(day.id) ? 'rotate-180' : ''}`}>
-                    ▼
-                  </div>
                 </div>
-              </div>
 
-              {/* Day Content */}
-              {expandedDays.has(day.id) && (
-                <div className="p-6 border-t border-[var(--color-pencil-gray)]">
-                  {day.activities.length === 0 ? (
-                    <p className="text-gray-500 italic">No activities planned yet</p>
-                  ) : (
-                    <div className="space-y-6">
-                      {day.activities.map((activity) => (
-                        <div key={activity.id} className="relative">
-                          {/* FIXED: Use grid layout for consistent alignment */}
-                          <div className="grid grid-cols-[100px_1fr] gap-4">
-                            {/* Time block with fixed width */}
-                            <div className="text-xs font-semibold text-[var(--color-stamp-red)] uppercase tracking-wider text-right">
-                              {activity.timeBlock.replace('-', ' ')}
-                            </div>
-                            
-                            {/* Content aligned consistently */}
-                            <div className="flex-1">
-                              <div className="text-gray-700 whitespace-pre-wrap">
-                                {activity.description}
+                {/* Day Content */}
+                {expandedDays.has(day.id) && (
+                  <div className="p-6 border-t border-[var(--color-pencil-gray)]">
+                    {!day.activities || day.activities.length === 0 ? (
+                      <p className="text-gray-500 italic">No activities planned yet</p>
+                    ) : (
+                      <div className="space-y-6">
+                        {day.activities.map((activity) => (
+                          <div key={activity.id} className="relative">
+                            <div className="grid grid-cols-[100px_1fr] gap-4">
+                              {/* Time block with fixed width */}
+                              <div className="text-xs font-semibold text-[var(--color-stamp-red)] uppercase tracking-wider text-right">
+                                {activity.timeBlock.replace('-', ' ')}
                               </div>
                               
-                              {/* Gems */}
-                              {activity.gems?.map((gem) => (
-                                <div 
-                                  key={gem.id}
-                                  className="mt-4 pl-4 border-l-4 border-[var(--color-stamp-red)]"
-                                >
-                                  <div className="bg-gradient-to-r from-[var(--color-highlighter)]/30 to-transparent p-3 -ml-4">
-                                    <div className="flex items-start gap-2">
-                                      <span className="text-[var(--color-stamp-red)]">
-                                        {gem.gemType === 'hidden_gem' ? '💎' : 
-                                         gem.gemType === 'tip' ? '💡' : '⚠️'}
-                                      </span>
-                                      <div>
-                                        <div className="font-semibold text-[var(--color-stamp-red)] mb-1">
-                                          {gem.title}
-                                        </div>
-                                        <div className="text-sm text-gray-700">
-                                          {gem.description}
-                                        </div>
-                                        {gem.insiderInfo && (
-                                          <div className="text-xs text-gray-500 mt-2">
-                                            💡 {gem.insiderInfo}
+                              {/* Content aligned consistently */}
+                              <div className="flex-1">
+                                <div className="text-gray-700 whitespace-pre-wrap">
+                                  {activity.description}
+                                </div>
+                                
+                                {/* Gems */}
+                                {activity.gems?.map((gem) => (
+                                  <div 
+                                    key={gem.id}
+                                    className="mt-4 pl-4 border-l-4 border-[var(--color-stamp-red)]"
+                                  >
+                                    <div className="bg-gradient-to-r from-[var(--color-highlighter)]/30 to-transparent p-3 -ml-4">
+                                      <div className="flex items-start gap-2">
+                                        <span className="text-[var(--color-stamp-red)]">
+                                          {gem.gemType === 'hidden_gem' ? '💎' : 
+                                           gem.gemType === 'tip' ? '💡' : '⚠️'}
+                                        </span>
+                                        <div>
+                                          <div className="font-semibold text-[var(--color-stamp-red)] mb-1">
+                                            {gem.title}
                                           </div>
-                                        )}
+                                          <div className="text-sm text-gray-700">
+                                            {gem.description}
+                                          </div>
+                                          {gem.insiderInfo && (
+                                            <div className="text-xs text-gray-500 mt-2">
+                                              💡 {gem.insiderInfo}
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
-                                </div>
-                              ))}
+                                ))}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
 
         {/* AI Customization Prompt (if purchased) */}
-        {(hasPurchased || isOwner) && (
+        {(hasPurchased || isOwner) && tripDays.length > 0 && (
           <div className="mt-8 bg-gradient-to-br from-purple-50 to-blue-50 rounded border border-purple-200 p-6">
             <h3 className="font-serif text-xl text-[var(--color-ink)] mb-3">
               ✨ Make This Trip Yours
@@ -314,17 +345,9 @@ export default function TripViewer({ trip, isOwner, hasPurchased, isPreview }: T
 
         {/* Stats */}
         <div className="mt-8 flex items-center gap-6 text-sm text-gray-600">
-          <div>
-            📍 {trip.days.reduce((sum: number, d) => sum + d.activities.length, 0)} activities
-          </div>
-          <div>
-            💎 {trip.days.reduce((sum: number, d) => 
-              sum + d.activities.reduce((s: number, a) => s + (a.gems?.length || 0), 0), 0
-            )} hidden gems
-          </div>
-          <div>
-            🗓️ {trip.durationDays} days
-          </div>
+          <div>📍 {totalActivities} activities</div>
+          <div>💎 {totalGems} hidden gems</div>
+          <div>🗓️ {trip.durationDays} days</div>
         </div>
       </div>
     </div>

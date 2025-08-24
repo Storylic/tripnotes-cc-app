@@ -13,7 +13,8 @@
     "db:studio": "drizzle-kit studio",
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhook/stripe",
     "test": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:cache": "tsx scripts/test-redis-cache.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.60.0",
@@ -46,6 +47,7 @@
     "sharp": "^0.34.3",
     "stripe": "^18.4.0",
     "tailwindcss": "^4.1.12",
+    "undici": "^7.15.0",
     "zod": "^4.0.17",
     "zustand": "^5.0.8"
   },

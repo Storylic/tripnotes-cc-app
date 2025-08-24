@@ -1,12 +1,12 @@
 // app/editor/[id]/page.tsx
-// Main trip editor page with two-panel layout
+// Editor page using granular caching system
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { db } from '@/db/client';
-import { trips, tripDays, activities, gems } from '@/db/schema';
-import { eq, inArray } from 'drizzle-orm';
-import EditorClient from './editor-client';
+import { trips } from '@/db/schema';
+import { getTripDataFast } from '@/lib/cache/trip-cache-service'; // Uses granular cache internally
+import GranularEditorClient from './editor-client-granular';
 import type { TripData } from './lib/types';
 
 interface EditorPageProps {
@@ -41,83 +41,28 @@ export default async function EditorPage({ params }: EditorPageProps) {
     redirect(`/editor/${newTrip.id}`);
   }
 
-  // Load existing trip
-  const [trip] = await db
-    .select()
-    .from(trips)
-    .where(eq(trips.id, id))
-    .limit(1);
+  // Load trip data using granular cache system
+  const loadStart = performance.now();
+  const tripData = await getTripDataFast(id); // This now uses granular caching
+  const loadTime = performance.now() - loadStart;
+  
+  console.log(`[Editor] Trip ${id} loaded in ${loadTime.toFixed(2)}ms`);
 
-  if (!trip) {
+  if (!tripData) {
     redirect('/dashboard');
   }
 
   // Verify ownership
-  if (trip.creatorId !== user.id) {
+  if (tripData.creatorId !== user.id) {
     redirect('/dashboard');
   }
 
-  // Load trip days with activities and gems
-  const days = await db
-    .select()
-    .from(tripDays)
-    .where(eq(tripDays.tripId, id))
-    .orderBy(tripDays.dayNumber);
-
-  // Load all activities for this trip's days
-  const dayIds = days.map(d => d.id);
-  const allActivities = dayIds.length > 0 
-    ? await db
-        .select()
-        .from(activities)
-        .where(inArray(activities.dayId, dayIds))
-        .orderBy(activities.orderIndex)
-    : [];
-
-  // Load all gems
-  const activityIds = allActivities.map(a => a.id);
-  const allGems = activityIds.length > 0
-    ? await db
-        .select()
-        .from(gems)
-        .where(inArray(gems.activityId, activityIds))
-    : [];
-
-  // Organize data with proper type casting
-  const tripData: TripData = {
-    ...trip,
-    days: days.map(day => ({
-      ...day,
-      tripId: trip.id,
-      activities: allActivities
-        .filter(a => a.dayId === day.id)
-        .map(activity => ({
-          id: activity.id,
-          dayId: activity.dayId,
-          timeBlock: activity.timeBlock,
-          description: activity.description,
-          orderIndex: activity.orderIndex,
-          locationName: activity.locationName,
-          locationLat: activity.locationLat ? String(activity.locationLat) : null,
-          locationLng: activity.locationLng ? String(activity.locationLng) : null,
-          activityType: activity.activityType,
-          estimatedCost: activity.estimatedCost,
-          startTime: activity.startTime,
-          endTime: activity.endTime,
-          title: activity.title,
-          gems: allGems
-            .filter(g => g.activityId === activity.id)
-            .map(gem => ({
-              id: gem.id,
-              title: gem.title,
-              description: gem.description,
-              gemType: gem.gemType as 'hidden_gem' | 'tip' | 'warning',
-              insiderInfo: gem.insiderInfo,
-              metadata: gem.metadata,
-            })),
-        })),
-    })),
+  // Ensure days array exists before passing to client
+  const sanitizedTripData: TripData = {
+    ...tripData,
+    days: Array.isArray(tripData.days) ? tripData.days : [],
   };
 
-  return <EditorClient initialData={tripData} />;
+  // Use the granular editor client
+  return <GranularEditorClient initialData={sanitizedTripData} />;
 }

@@ -1,11 +1,9 @@
 // app/preview/[id]/page.tsx
-// Preview page showing how the trip will look to end users
+// Preview page with fixed performance logging
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { db } from '@/db/client';
-import { trips, tripDays, activities, gems, users } from '@/db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { getTripDataFast } from '@/lib/cache/trip-cache-service';
 import TripViewer from './trip-viewer';
 
 interface PreviewPageProps {
@@ -19,101 +17,32 @@ export default async function PreviewPage({ params }: PreviewPageProps) {
   // Check if user is authenticated
   const { data: { user } } = await supabase.auth.getUser();
   
-  // Load trip
-  const [trip] = await db
-    .select()
-    .from(trips)
-    .where(eq(trips.id, id))
-    .limit(1);
+  // Load trip with caching - Use performance.now() instead of console.time
+  const loadStart = performance.now();
+  const tripData = await getTripDataFast(id);
+  const loadTime = performance.now() - loadStart;
+  
+  // Log with timestamp to avoid conflicts
+  console.log(`[Preview] Trip ${id} loaded in ${loadTime.toFixed(2)}ms at ${new Date().toISOString()}`);
 
-  if (!trip) {
+  if (!tripData) {
     redirect('/');
   }
 
   // For preview, only the creator can view drafts
-  if (trip.status === 'draft' && (!user || trip.creatorId !== user.id)) {
+  if (tripData.status === 'draft' && (!user || tripData.creatorId !== user.id)) {
     redirect('/');
   }
 
-  // Load creator info
-  const [creator] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, trip.creatorId))
-    .limit(1);
-
-  // Load trip days with activities and gems
-  const days = await db
-    .select()
-    .from(tripDays)
-    .where(eq(tripDays.tripId, id))
-    .orderBy(tripDays.dayNumber);
-
-  // Load all activities
-  const dayIds = days.map(d => d.id);
-  const allActivities = dayIds.length > 0 
-    ? await db
-        .select()
-        .from(activities)
-        .where(inArray(activities.dayId, dayIds))
-        .orderBy(activities.orderIndex)
-    : [];
-
-  // Load all gems
-  const activityIds = allActivities.map(a => a.id);
-  const allGems = activityIds.length > 0
-    ? await db
-        .select()
-        .from(gems)
-        .where(inArray(gems.activityId, activityIds))
-    : [];
-
-  // Organize data with proper type casting
-  const tripData = {
-    ...trip,
-    creator,
-    days: days.map(day => ({
-      ...day,
-      tripId: trip.id,
-      activities: allActivities
-        .filter(a => a.dayId === day.id)
-        .map(activity => ({
-          id: activity.id,
-          dayId: activity.dayId,
-          timeBlock: activity.timeBlock,
-          description: activity.description,
-          orderIndex: activity.orderIndex,
-          locationName: activity.locationName,
-          locationLat: activity.locationLat ? String(activity.locationLat) : null,
-          locationLng: activity.locationLng ? String(activity.locationLng) : null,
-          activityType: activity.activityType,
-          estimatedCost: activity.estimatedCost,
-          startTime: activity.startTime,
-          endTime: activity.endTime,
-          title: activity.title,
-          gems: allGems
-            .filter(g => g.activityId === activity.id)
-            .map(gem => ({
-              id: gem.id,
-              title: gem.title,
-              description: gem.description,
-              gemType: gem.gemType as 'hidden_gem' | 'tip' | 'warning',
-              insiderInfo: gem.insiderInfo,
-              metadata: gem.metadata,
-            })),
-        })),
-    })),
-  };
-
   // Check if current user owns this trip (for edit button)
-  const isOwner = !!(user && trip.creatorId === user.id);
+  const isOwner = !!(user && tripData.creatorId === user.id);
   
   // Check if user has purchased this trip (for future implementation)
   const hasPurchased = false; // Will implement with purchase system
 
   return (
     <TripViewer 
-      trip={tripData} 
+      trip={tripData as any} 
       isOwner={isOwner}
       hasPurchased={hasPurchased}
       isPreview={true}
